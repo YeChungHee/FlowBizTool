@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 전시회 콜드세일즈용 제안서</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: rgba(255, 255, 255, 0.92);
+        --line: rgba(15, 23, 42, 0.08);
+        --text: #101828;
+        --muted: #667085;
+        --blue: #0a84ff;
+        --blue-soft: rgba(10, 132, 255, 0.12);
+        --orange: #b54708;
+        --orange-soft: rgba(181, 71, 8, 0.12);
+        --green: #027a48;
+        --green-soft: rgba(2, 122, 72, 0.12);
+        --shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family: "Apple SD Gothic Neo", "SF Pro KR", "Malgun Gothic", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(10, 132, 255, 0.14), transparent 32%),
+          linear-gradient(180deg, #eef5ff 0%, #f7f9fc 28%, #f4f7fb 100%);
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      .page {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 28px 24px 40px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) 420px;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .hero-main,
+      .hero-side,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-main {
+        padding: 18px 20px;
+      }
+
+      .hero-side {
+        padding: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.16;
+        letter-spacing: -0.04em;
+      }
+
+      .subcopy {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+        max-width: 900px;
+      }
+
+      .status {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(248, 250, 252, 0.95);
+        border: 1px solid var(--line);
+      }
+
+      .status .label {
+        color: var(--muted);
+        font-size: 10px;
+        margin-bottom: 4px;
+      }
+
+      .status .value {
+        font-size: 16px;
+        line-height: 1.3;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .tabbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        border: 0;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--muted);
+        padding: 12px 18px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .tab.active {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .screen { display: none; }
+      .screen.active { display: block; }
+
+      .layout-3col {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr) 340px;
+        gap: 20px;
+      }
+
+      .layout-2col {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 20px;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+      }
+
+      .helper {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .field {
+        margin-bottom: 14px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .field .fake-input,
+      .field select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.96);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .badge-row,
+      .chip-row,
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge,
+      .chip,
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .badge {
+        padding: 8px 12px;
+      }
+
+      .badge.orange {
+        background: var(--orange-soft);
+        color: var(--orange);
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .chip {
+        padding: 8px 12px;
+        background: rgba(15, 23, 42, 0.06);
+      }
+
+      .btn {
+        border: 0;
+        cursor: pointer;
+        padding: 11px 16px;
+      }
+
+      .btn.blue {
+        background: var(--blue);
+        color: white;
+      }
+
+      .btn.gray {
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text);
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kpi {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 18px;
+      }
+
+      .kpi .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .kpi .value {
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+      }
+
+      .kpi .value.compact {
+        font-size: 17px;
+        line-height: 1.45;
+        letter-spacing: -0.02em;
+      }
+
+      .kpi .value.small {
+        font-size: 18px;
+        line-height: 1.4;
+        letter-spacing: -0.02em;
+      }
+
+      .kpi .value.multiline {
+        font-size: 15px;
+        line-height: 1.5;
+        letter-spacing: -0.02em;
+        word-break: keep-all;
+      }
+
+      .kpi .value.negative {
+        color: #d92d20;
+      }
+
+      .kpi .meta {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .kpi .meta strong {
+        color: var(--text);
+        font-weight: 800;
+      }
+
+      .priority-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .priority-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 92px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .priority-badge.warning {
+        background: rgba(217, 45, 32, 0.14);
+        color: #d92d20;
+      }
+
+      .priority-badge.hope {
+        background: rgba(247, 144, 9, 0.18);
+        color: #b54708;
+      }
+
+      .priority-badge.ok {
+        background: rgba(18, 183, 106, 0.16);
+        color: #027a48;
+      }
+
+      .priority-note {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .item {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(248, 250, 252, 0.95);
+        border: 1px solid var(--line);
+      }
+
+      .item strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 15px;
+      }
+
+      .item p,
+      .item li {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 14px;
+      }
+
+      .item ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .doc {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 24px;
+      }
+
+      .doc section + section {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .doc h4 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .doc p {
+        margin: 0;
+        line-height: 1.8;
+        font-size: 15px;
+      }
+
+      .email-box {
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px dashed rgba(15, 23, 42, 0.14);
+        background: rgba(248, 250, 252, 0.8);
+      }
+
+      .email-box p {
+        margin: 0;
+        line-height: 1.88;
+      }
+
+      .source-list a {
+        display: block;
+        margin-top: 8px;
+        word-break: break-all;
+      }
+
+      .engine-version {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 1320px) {
+        .hero,
+        .layout-3col,
+        .layout-2col,
+        .split,
+        .kpi-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <section class="hero-main">
+          <div class="eyebrow">BizAiPro 전시회형 샘플 · KCNC x SIMTOS 2026</div>
+          <h1 id="hero-title">전시회 콜드세일즈용 제안서</h1>
+          <p class="subcopy" id="hero-subcopy"></p>
+        </section>
+        <aside class="hero-side">
+          <div class="status">
+            <div class="label">현재 제안 상태</div>
+            <div class="value" id="hero-current-status"></div>
+          </div>
+          <div class="status">
+            <div class="label">추천 첫 액션</div>
+            <div class="value" id="hero-next-action"></div>
+          </div>
+          <div class="status">
+            <div class="label">추천 결제기간</div>
+            <div class="value" id="hero-recommended-tenor"></div>
+          </div>
+        </aside>
+      </header>
+
+      <div class="tabbar">
+        <button class="tab active" data-screen="overview">1. 기업 발굴</button>
+        <button class="tab" data-screen="proposal">2. 제안서 샘플</button>
+        <button class="tab" data-screen="email">3. 이메일 샘플</button>
+      </div>
+
+      <section id="overview" class="screen active">
+        <div class="layout-3col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>분석결과 엔진 선택</h2>
+              <p class="helper">버전별로 저장된 엔진 결과를 선택해 비교할 수 있고, 필요하면 `web_context.json`을 직접 불러와 덮어쓸 수 있습니다.</p>
+              <div class="field">
+                <label>현재 적용 엔진 버전</label>
+                <div class="fake-input" id="engine-version-display">최신 엔진 v.1.16.01</div>
+              </div>
+              <div class="field">
+                <label>엔진 버전 선택</label>
+                <select id="engine-version-select">
+                  <option value="latest">최신 엔진 v.1.16.01</option>
+                  <option value="previous">업데이트 전 엔진 v.1.0.00</option>
+                  <option value="base">기본 KCNC 샘플</option>
+                </select>
+              </div>
+              <div class="engine-version">[참고] 엔진 결과는 버전별 `web_context.json`으로 별도 저장해 비교하는 구조입니다.</div>
+              <div class="field">
+                <label>직접 결과 파일 불러오기</label>
+                <input id="web-context-file" type="file" accept=".json,application/json" />
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>기업 기본 정보</h2>
+              <div class="field">
+                <label>기업명</label>
+                <div class="fake-input">케이씨엔씨(주) / KCNC</div>
+              </div>
+              <div class="field">
+                <label>대표자</label>
+                <div class="fake-input">김형주 / KIM HYEONG JOO</div>
+              </div>
+              <div class="field">
+                <label>사업자등록번호</label>
+                <div class="fake-input">755-88-02028</div>
+              </div>
+              <div class="field">
+                <label>설립연도</label>
+                <div class="fake-input">2022</div>
+              </div>
+              <div class="field">
+                <label>임직원 규모</label>
+                <div class="fake-input">20~49명</div>
+              </div>
+              <div class="field">
+                <label>홈페이지</label>
+                <div class="fake-input"><a href="https://kcnc.co.kr" target="_blank" rel="noreferrer">https://kcnc.co.kr</a></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>전시회 근거</h2>
+              <div class="field">
+                <label>전시회명</label>
+                <div class="fake-input">SIMTOS 2026</div>
+              </div>
+              <div class="field">
+                <label>전시회정보 제공 URL</label>
+                <div class="fake-input"><a href="https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719" target="_blank" rel="noreferrer">SIMTOS 2026 참가사 상세 페이지</a></div>
+              </div>
+              <div class="field">
+                <label>산업/품목</label>
+                <div class="fake-input">제조장비용 CNC 제어시스템 / TENUX / 스마트 제어시스템</div>
+              </div>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <div class="badge-row" style="margin-bottom: 12px;">
+                <span class="badge orange">영업용 샘플</span>
+                <span class="badge green">공개 정보 기반</span>
+              </div>
+              <h2 id="overview-title">KCNC 간이 해석</h2>
+              <p class="helper" id="overview-helper"></p>
+              <div class="kpi-grid" id="primary-kpis"></div>
+              <div class="kpi-grid" id="secondary-kpis" style="margin-top: 12px;"></div>
+            </section>
+
+            <section class="split">
+              <article class="panel">
+                <h2>공개 정보 요약</h2>
+                <div class="card-list">
+                  <div class="item">
+                    <strong>홈페이지 기준 사업 내용</strong>
+                  <p id="summary-website"></p>
+                </div>
+                <div class="item">
+                  <strong>SIMTOS 기준 참가사 정보</strong>
+                  <p id="summary-exhibition"></p>
+                </div>
+                <div class="item">
+                  <strong>플로우스코어 리포트 기준</strong>
+                  <p id="summary-financial"></p>
+                </div>
+              </div>
+            </article>
+
+              <article class="panel">
+                <h2>제안 포인트</h2>
+                <div class="card-list">
+                  <div class="item">
+                    <strong>왜 지금 제안할 수 있는가</strong>
+                    <p id="proposal-point-why"></p>
+                  </div>
+                  <div class="item">
+                    <strong>FlowPay 활용 가설</strong>
+                    <p id="proposal-point-usecase"></p>
+                  </div>
+                  <div class="item">
+                    <strong>먼저 확인할 점</strong>
+                    <ul id="proposal-checks"></ul>
+                  </div>
+                </div>
+              </article>
+            </section>
+
+            <section class="panel">
+              <div class="action-row">
+                <button class="btn blue" data-jump="proposal">제안서 샘플 보기</button>
+                <button class="btn gray" data-jump="email">이메일 샘플 보기</button>
+              </div>
+            </section>
+          </main>
+
+          <aside class="stack">
+            <section class="panel">
+              <h2>영업용 예시 조건</h2>
+              <div class="card-list">
+                <div class="item">
+                  <strong>초기 검토 범위</strong>
+                  <p>실거래 확인 전 기준으로 5천만~1억원 수준의 파일럿 제안을 우선 검토합니다.</p>
+                </div>
+                <div class="item">
+                  <strong>결제기간</strong>
+                  <p>초기에는 1~2개월 회전형 구조가 더 적합합니다.</p>
+                </div>
+                <div class="item">
+                  <strong>마진 기준</strong>
+                  <p>2개월 구조는 6%대부터 시작해 실제 거래 안정성 확인 후 조정하는 접근이 자연스럽습니다.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>출처 링크</h2>
+              <div class="source-list">
+                <a href="https://kcnc.co.kr" target="_blank" rel="noreferrer">KCNC 홈페이지</a>
+                <a href="https://kcnc.co.kr/technology.html" target="_blank" rel="noreferrer">KCNC 기술현황</a>
+                <a href="https://kcnc.co.kr/product.html" target="_blank" rel="noreferrer">KCNC 제품소개</a>
+                <a href="https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719" target="_blank" rel="noreferrer">SIMTOS 2026 참가사 상세</a>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="proposal" class="screen">
+        <div class="layout-2col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>자동 입력 정보</h2>
+              <div class="field">
+                <label>기업명</label>
+                <div class="fake-input">케이씨엔씨(주)</div>
+              </div>
+              <div class="field">
+                <label>사업자번호</label>
+                <div class="fake-input">755-88-02028</div>
+              </div>
+              <div class="field">
+                <label>대표자명</label>
+                <div class="fake-input">김형주</div>
+              </div>
+              <div class="field">
+                <label>전시회명</label>
+                <div class="fake-input">SIMTOS 2026</div>
+              </div>
+              <div class="field">
+                <label>전시회정보 제공 URL</label>
+                <div class="fake-input"><a href="https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719" target="_blank" rel="noreferrer">공식 참가사 상세 링크</a></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>문서 액션</h2>
+              <div class="action-row">
+                <button class="btn gray">복사</button>
+                <button class="btn gray">PDF 출력</button>
+                <button class="btn blue" data-jump="email">이메일 샘플 보기</button>
+              </div>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <h2>KCNC 전시회형 제안서 샘플</h2>
+              <p class="helper">맥킨지 보고서 스타일을 따라 결론과 다음 행동이 먼저 보이도록 짧은 비즈니스톤으로 구성한 예시입니다.</p>
+              <div class="doc">
+                <section>
+                  <h4>Executive Summary</h4>
+                  <p id="proposal-executive"></p>
+                </section>
+                <section>
+                  <h4>Company Snapshot</h4>
+                  <p id="proposal-company"></p>
+                </section>
+                <section>
+                  <h4>Exhibition Context</h4>
+                  <p id="proposal-exhibition"></p>
+                </section>
+                <section>
+                  <h4>Opportunity Assessment</h4>
+                  <p id="proposal-opportunity"></p>
+                </section>
+                <section>
+                  <h4>Suggested Initial Structure</h4>
+                  <p id="proposal-structure"></p>
+                </section>
+                <section>
+                  <h4>Risks And Checks</h4>
+                  <p id="proposal-risks"></p>
+                </section>
+                <section>
+                  <h4>Next Actions</h4>
+                  <p id="proposal-next"></p>
+                </section>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+
+      <section id="email" class="screen">
+        <div class="layout-2col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>이메일 설정 샘플</h2>
+              <div class="field">
+                <label>기업명</label>
+                <div class="fake-input">케이씨엔씨(주)</div>
+              </div>
+              <div class="field">
+                <label>대표자명</label>
+                <div class="fake-input">김형주</div>
+              </div>
+              <div class="field">
+                <label>영업담당자 선택</label>
+                <select>
+                  <option>영업이사 예충희 (010-4815-1411)</option>
+                  <option>전략이사 박진용 (010-9600-1630)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>이메일 제목 선택</label>
+                <select>
+                  <option>케이씨엔씨(주)의 매출성장 타이밍을 지키는 방법</option>
+                  <option>대출이 아닌 운영자금 대안, FlowPay를 소개드립니다</option>
+                  <option>생산 확대와 매출 회수 사이의 공백을 메워드립니다</option>
+                </select>
+              </div>
+              <div class="action-row">
+                <button class="btn gray">복사</button>
+              </div>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <h2>KCNC 콜드메일 샘플</h2>
+              <p class="helper">전시회 참가 정보와 홈페이지 공개 내용을 바탕으로, 부담 없이 미팅으로 이어지게 설계한 첫 접촉용 문안입니다.</p>
+              <div class="doc">
+                <section>
+                  <h4>메일 제목</h4>
+                  <p id="email-subject"></p>
+                </section>
+                <section>
+                  <h4>메일 본문</h4>
+                  <div class="email-box">
+                    <p id="email-body"></p>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const defaultPageData = {
+        engineVersion: "최신 엔진 v.1.16.01",
+        companyName: "케이씨엔씨(주)",
+        shortName: "KCNC",
+        representativeName: "김형주",
+        exhibitionName: "SIMTOS 2026",
+        exhibitionInfoUrl: "https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719",
+        website: "https://kcnc.co.kr",
+        recentRevenueLabel: "2024년 매출액",
+        recentRevenueValue: "확인 필요",
+        operatingProfitLabel: "2024년 영업이익",
+        operatingProfitValue: "-563,240천원",
+        estimatedLimitLabel: "예상 한도",
+        estimatedLimitValue: "5천만~1억원",
+        estimatedMarginLabel: "예상 마진율",
+        estimatedMarginValue: "약 6%대",
+        estimatedMarginMeta: "결제유예기간 60일 기준",
+        requestedTenorDays: 60,
+        requestedTenorMonths: 2,
+        proposalPriority: "중상",
+        proposalPriorityState: "희망",
+        financialFilterSignal: "BB+",
+        cashflowSignal: "보수적 접근",
+        nextAction: "자료 확인 후<br />제안서 발송",
+        currentProposalState: "추가 확인 필요",
+        heroNextAction: "제안서 발송 후 15분 미팅 제안",
+        recommendedTenorText: "1~2개월 우선 검토",
+        overviewSummary:
+          "KCNC는 CNC 제어기, 구동계, TORUS 플랫폼을 소개하는 제조장비 제어시스템 기업으로 읽히며, 전시회 이후 수주 확대 타이밍에 조달 자금 연결 제안이 가능한 유형입니다. 다만 리포트의 재무 기준은 플로우페이 제공 가능 여부를 먼저 거르는 필터로 봅니다.",
+        websiteSummary:
+          "KCNC는 제조장비용 제어시스템 TENUX, 구동계, TORUS 플랫폼을 소개하고 있으며, 제조장비 제어시스템 글로벌 리더를 지향한다고 밝히고 있습니다.",
+        exhibitionSummary:
+          "SIMTOS 2026 참가사 페이지에는 Development/Service 기업으로 표시되며, 주요 고객사로 SMEC, 위아공작기계, 화천기공, DN솔루션즈, CSCAM, 대성하이텍이 기재되어 있습니다.",
+        financialSummary:
+          "공개 리포트 기준 기업 신용등급은 BB+, 현금흐름 등급은 불량으로 확인되며, 2024년 영업손실과 순손실이 기재되어 있습니다. 이 정보는 우선 플로우페이 제공 기준에 미달하는지를 가르는 재무 필터 역할로 사용합니다.",
+        whyNow:
+          "전시회 참가 시점은 데모, 파일럿, 공급 논의가 늘어나는 시기라 부품 조달과 외주 가공 자금 공백을 먼저 연결하는 제안이 자연스럽습니다. 이때 재무는 필터로, 전시회와 홈페이지 정보는 메시지 설계 기준으로 작동합니다.",
+        useCase:
+          "제어 모듈, 드라이브 부품, 외주 가공비, 시제품·초기 공급 물량을 대상으로 단기 선매입 구조를 제안할 수 있습니다.",
+        checks: [
+          "최근 발주서 또는 공급계약 유무",
+          "주요 매입처와 주요 고객사 결제 조건",
+          "외주 가공 및 부품 매입의 실제 회전 주기",
+        ],
+        proposal: {
+          executive:
+            "KCNC는 SIMTOS 2026 참가를 통해 시장 접점을 넓히고 있는 제조장비 제어시스템 기업으로 해석됩니다. 공개 정보 기준으로는 제어기, 구동계, 데이터 플랫폼을 모두 다루는 구조여서 부품 조달과 외주 가공, 선행 제작 물량에 대한 자금 연결 수요가 발생할 가능성이 있습니다.",
+          company:
+            "KCNC 홈페이지는 TENUX 제어기, 구동계, TORUS 플랫폼을 중심으로 기술 포트폴리오를 설명하고 있으며, SIMTOS 참가사 정보에는 2022년 설립, 20~49명 규모, Development/Service 기업으로 표시되어 있습니다. 주요 고객사로는 SMEC, 위아공작기계, 화천기공, DN솔루션즈, CSCAM, 대성하이텍이 공개되어 있습니다.",
+          exhibition:
+            "SIMTOS는 대한민국 최대 생산제조기술 전시회로 소개되고 있으며, KCNC는 해당 공식 참가사 상세 페이지에 등록된 기업입니다. 전시회 참가 이후에는 데모, 파일럿, 납품 검토가 늘어날 수 있어 공급 준비 자금을 먼저 연결하는 제안이 타당합니다.",
+          opportunity:
+            "FlowPay는 대출이 아니라 필요한 매입 시점의 공급대금을 먼저 연결하는 방식으로 제안할 수 있습니다. KCNC의 경우 핵심 부품, 제어 모듈, 외주 가공비, 초기 공급 물량을 대상으로 단기 선매입 구조를 먼저 검토하는 접근이 적절합니다.",
+          structure:
+            "실거래 자료 확인 전 단계에서는 5천만~1억원 수준의 파일럿 범위를 가설로 제시하고, 1~2개월 회전형 구조를 먼저 검토하는 것이 무리가 적습니다. 2개월 구조를 기준으로 하면 기본 6%대 마진부터 협의를 시작하고, 실제 회수 흐름과 거래 증빙 확인 후 조정하는 것이 자연스럽습니다.",
+          risks:
+            "플로우스코어 리포트 공개 내용상 BB+와 현금흐름 등급 불량, 2024년 영업손실·순손실이 확인되어 재무 필터를 보수적으로 적용할 필요가 있습니다. 따라서 최근 발주서, 세금계산서, 주요 매입처와 주요 고객사의 결제 조건, 실제 회전 주기를 먼저 확인해야 합니다.",
+          next:
+            "첫 단계에서는 전시회 참가 맥락을 활용한 소개 메일을 발송하고, 회신이 오면 최근 거래 자료를 받아 맞춤 구조 제안서로 전환하는 것이 좋습니다. 15분 내외의 짧은 미팅 제안이 가장 자연스러운 다음 행동입니다.",
+        },
+        email: {
+          subject: "케이씨엔씨(주)의 매출성장 타이밍을 지키는 방법",
+          bodyLines: [
+            "케이씨엔씨(주) 김형주 대표님 귀중,",
+            "",
+            "안녕하세요. 276홀딩스 FlowPay 영업이사 예충희입니다.",
+            "",
+            "SIMTOS 2026 참여부스를 통해 알게된 'KCNC'의 비지니스에 대한 열정을 보고 연락드립니다.",
+            "KCNC가 소개하고 있는 TENUX 제어기, 구동계, TORUS 플랫폼과 같은 제조장비용 핵심 모듈 사업은 부품 조달과 외주 가공, 초기 공급 준비가 먼저 나가고 매출 회수는 뒤따르는 경우가 많아 운영자금 공백이 생기기 쉬운 구조라고 봤습니다.",
+            "",
+            "FlowPay는 대출이 아니라 필요한 매입 시점에 공급대금을 먼저 연결해 생산과 납품 일정을 지키도록 돕는 구조입니다. KCNC의 경우에도 핵심 부품, 외주 가공, 초기 공급 물량을 대상으로 1~2개월 회전형 구조가 맞는지 먼저 검토해볼 수 있다고 판단했습니다. 다만 플로우스코어 리포트의 재무 기준은 우선 제공 가능 여부를 가르는 필터로 보고 있습니다.",
+            "",
+            "공개 정보만으로는 조건을 확정할 수 없어서, 최근 발주서나 세금계산서, 주요 매입처·고객사 결제 조건을 확인하면 보다 실제적인 제안서로 정리드릴 수 있습니다.",
+            "괜찮으시다면 15분 정도 통화로 KCNC에 맞는 활용 가능성을 짧게 공유드리고 싶습니다.",
+            "",
+            "감사합니다.",
+            "예충희 드림",
+            "영업이사 / 010-4815-1411",
+          ],
+        },
+      };
+
+      const engineVersionPresets = {
+        latest: {
+          engineVersion: "최신 엔진 v.1.16.01",
+        },
+        previous: {
+          engineVersion: "업데이트 전 엔진 v.1.0.00",
+          proposalPriority: "중",
+          financialFilterSignal: "BB",
+          cashflowSignal: "주의 필요",
+          nextAction: "기본 소개 메일<br />우선 발송",
+          estimatedLimitValue: "보수 검토",
+          estimatedMarginValue: "협의 필요",
+          estimatedMarginMeta: "결제유예기간 확인 필요",
+          overviewSummary:
+            "이전 엔진 기준으로는 공개 재무 신호를 더 보수적으로 해석해, KCNC 건은 우선 일반 소개 메일 중심으로 접근하고 거래 자료 확보 뒤 제안서를 보강하는 흐름이 적절한 대상으로 봅니다.",
+        },
+        base: {
+          engineVersion: "기본 KCNC 샘플",
+        },
+      };
+
+      let pageData = JSON.parse(JSON.stringify(defaultPageData));
+
+      const tabs = document.querySelectorAll(".tab");
+      const screens = document.querySelectorAll(".screen");
+
+      function deepMerge(target, source) {
+        for (const key of Object.keys(source)) {
+          const sourceValue = source[key];
+          if (
+            sourceValue &&
+            typeof sourceValue === "object" &&
+            !Array.isArray(sourceValue) &&
+            typeof target[key] === "object" &&
+            target[key] !== null &&
+            !Array.isArray(target[key])
+          ) {
+            deepMerge(target[key], sourceValue);
+          } else {
+            target[key] = sourceValue;
+          }
+        }
+        return target;
+      }
+
+      function formatKrw(value) {
+        if (value === null || value === undefined || value === "") {
+          return "확인 필요";
+        }
+        return `${Number(value).toLocaleString("ko-KR")}원`;
+      }
+
+      function formatTenorMeta(days) {
+        if (days === null || days === undefined || days === "") {
+          return "결제유예기간 확인 필요";
+        }
+        const formatted = `${Number(days).toLocaleString("ko-KR")}일`;
+        return `결제유예기간 (<strong>${formatted}</strong>)`;
+      }
+
+      function formatRecommendedTenor(months, days) {
+        if (months !== null && months !== undefined && months !== "") {
+          const numericMonths = Number(months);
+          if (!Number.isNaN(numericMonths) && numericMonths > 0) {
+            return `${numericMonths}개월 우선 검토`;
+          }
+        }
+        if (days !== null && days !== undefined && days !== "") {
+          const numericDays = Number(days);
+          if (!Number.isNaN(numericDays) && numericDays > 0) {
+            return `${numericDays}일 기준 검토`;
+          }
+        }
+        return "결제기간 확인 필요";
+      }
+
+      function renderKpiCards(targetId, items) {
+        const target = document.getElementById(targetId);
+        target.innerHTML = items
+          .map((item) => {
+            if (item.priority) {
+              return `
+              <div class="kpi">
+                <div class="label">${item.label}</div>
+                <div class="priority-card">
+                  <div class="priority-badge ${item.tone}">${item.state}</div>
+                  <div class="meta">현재 우선순위: <strong>${item.value}</strong></div>
+                </div>
+              </div>
+            `;
+            }
+            return `
+              <div class="kpi">
+                <div class="label">${item.label}</div>
+                <div class="value ${item.compact ? "compact" : ""} ${item.small ? "small" : ""} ${item.multiline ? "multiline" : ""} ${item.negative ? "negative" : ""}">${item.value}</div>
+                ${item.meta ? `<div class="meta">${item.meta}</div>` : ""}
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function proposalPriorityState(priority) {
+        const normalized = String(priority || "").trim();
+        if (normalized === "최상" || normalized === "상") {
+          return { tone: "ok", state: "가능" };
+        }
+        if (normalized === "중상") {
+          return { tone: "hope", state: "희망" };
+        }
+        return { tone: "warning", state: "주의" };
+      }
+
+      function renderList(targetId, items) {
+        const target = document.getElementById(targetId);
+        target.innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+      }
+
+      function renderPage() {
+        pageData.estimatedMarginMeta = formatTenorMeta(pageData.requestedTenorDays);
+        document.getElementById("engine-version-display").textContent = pageData.engineVersion;
+        document.getElementById("hero-current-status").innerHTML = pageData.currentProposalState;
+        document.getElementById("hero-next-action").innerHTML = pageData.heroNextAction;
+        document.getElementById("hero-recommended-tenor").innerHTML = pageData.recommendedTenorText;
+
+        document.getElementById("hero-subcopy").textContent =
+          `${pageData.shortName} 홈페이지, ${pageData.exhibitionName} 참가사 정보, 플로우스코어 리포트 공개 내용을 기준으로 ` +
+          "`재무는 제공 가능 여부를 거르는 필터`, `비재무는 제안 메시지를 만드는 근거`라는 원칙에 맞춰 " +
+          "`기업 발굴 > 제안서 > 이메일` 흐름을 실제 회사 데이터에 맞춰 채운 예시입니다.";
+
+        document.getElementById("overview-helper").textContent = pageData.overviewSummary;
+        document.getElementById("summary-website").textContent = pageData.websiteSummary;
+        document.getElementById("summary-exhibition").textContent = pageData.exhibitionSummary;
+        document.getElementById("summary-financial").textContent = pageData.financialSummary;
+        document.getElementById("proposal-point-why").textContent = pageData.whyNow;
+        document.getElementById("proposal-point-usecase").textContent = pageData.useCase;
+        renderList("proposal-checks", pageData.checks);
+
+        renderKpiCards("primary-kpis", [
+          { label: pageData.recentRevenueLabel, value: pageData.recentRevenueValue, compact: true },
+          { label: pageData.operatingProfitLabel, value: pageData.operatingProfitValue, compact: true, negative: String(pageData.operatingProfitValue).trim().startsWith("-") },
+          { label: pageData.estimatedLimitLabel, value: pageData.estimatedLimitValue, small: true },
+          { label: pageData.estimatedMarginLabel, value: pageData.estimatedMarginValue, meta: pageData.estimatedMarginMeta },
+        ]);
+
+        renderKpiCards("secondary-kpis", [
+          {
+            label: "제안 우선순위",
+            value: pageData.proposalPriority,
+            priority: true,
+            ...proposalPriorityState(pageData.proposalPriority),
+          },
+          { label: "재무 필터 신호", value: pageData.financialFilterSignal },
+          { label: "현금흐름 신호", value: pageData.cashflowSignal, compact: true },
+          { label: "추천 다음 행동", value: pageData.nextAction, multiline: true },
+        ]);
+
+        const secondaryKpis = document.getElementById("secondary-kpis");
+        if (secondaryKpis && !document.getElementById("priority-note")) {
+          const note = document.createElement("div");
+          note.id = "priority-note";
+          note.className = "priority-note";
+          note.textContent = "[참고] 전체 기준: 낮음·중 = 주의 / 중상 = 희망 / 상·최상 = 가능";
+          secondaryKpis.insertAdjacentElement("afterend", note);
+        }
+
+        document.getElementById("proposal-executive").textContent = pageData.proposal.executive;
+        document.getElementById("proposal-company").textContent = pageData.proposal.company;
+        document.getElementById("proposal-exhibition").textContent = pageData.proposal.exhibition;
+        document.getElementById("proposal-opportunity").textContent = pageData.proposal.opportunity;
+        document.getElementById("proposal-structure").textContent = pageData.proposal.structure;
+        document.getElementById("proposal-risks").textContent = pageData.proposal.risks;
+        document.getElementById("proposal-next").textContent = pageData.proposal.next;
+
+        document.getElementById("email-subject").textContent = pageData.email.subject;
+        document.getElementById("email-body").innerHTML = pageData.email.bodyLines.join("<br />");
+      }
+
+      function applyWebContext(context) {
+        const proposalContext = context.proposal_context || {};
+        const salesView = context.sales_view || {};
+        const riskNotes = salesView.risk_notes || [];
+        const summaryText =
+          context.sales_summary ||
+          `${context.company_name || pageData.shortName} 관련 영업 참고 결과는 ${salesView.recommendation || "추가 확인 필요"}입니다.`;
+
+        pageData.engineVersion = context.engine_version
+          ? `업로드 결과 ${context.engine_version}`
+          : "업로드 결과";
+        pageData.companyName = context.company_name || pageData.companyName;
+        pageData.shortName = proposalContext.sales_destination_name || pageData.shortName;
+        pageData.proposalPriority = salesView.recommendation || pageData.proposalPriority;
+        pageData.financialFilterSignal = context.applicant?.grade || context.overall?.grade || pageData.financialFilterSignal;
+        pageData.cashflowSignal = riskNotes[0] || pageData.cashflowSignal;
+        pageData.nextAction = salesView.next_action || pageData.nextAction;
+        pageData.currentProposalState = salesView.recommendation || pageData.currentProposalState;
+        pageData.heroNextAction = salesView.next_action || pageData.heroNextAction;
+        pageData.estimatedLimitValue = formatKrw(salesView.estimated_limit_krw);
+        pageData.requestedTenorMonths = context.requested_tenor_months ?? pageData.requestedTenorMonths;
+        pageData.requestedTenorDays =
+          context.industry_fit?.requested_tenor_days ??
+          (context.requested_tenor_months ? Number(context.requested_tenor_months) * 30 : pageData.requestedTenorDays);
+        pageData.recommendedTenorText = formatRecommendedTenor(pageData.requestedTenorMonths, pageData.requestedTenorDays);
+        pageData.estimatedMarginValue =
+          salesView.estimated_margin_rate_pct !== undefined && salesView.estimated_margin_rate_pct !== null
+            ? `${Number(salesView.estimated_margin_rate_pct).toFixed(2)}%`
+            : pageData.estimatedMarginValue;
+        pageData.estimatedMarginMeta = formatTenorMeta(pageData.requestedTenorDays);
+        pageData.overviewSummary = summaryText;
+        pageData.proposal.executive = `${context.company_name || pageData.companyName} 관련 영업 참고 결과는 '${salesView.recommendation || "추가 확인 필요"}'입니다. 예상 한도는 ${formatKrw(salesView.estimated_limit_krw)} 수준이며, 추가 자료를 받으면 실제 제안 조건을 더 구체화할 수 있습니다.`;
+        pageData.proposal.company = `신청업체 참고등급은 ${context.applicant?.grade || "-"}, 매출처 참고등급은 ${context.buyer?.grade || "-"}, 거래구조 참고등급은 ${context.transaction?.grade || "-"}, 통합 참고등급은 ${context.overall?.grade || "-"}입니다.`;
+        pageData.proposal.opportunity =
+          proposalContext.use_of_funds
+            ? `현재 가설상 자금 사용 목적은 '${proposalContext.use_of_funds}'이며, 이 범위를 기준으로 단기 구조 제안을 검토할 수 있습니다.`
+            : pageData.proposal.opportunity;
+        pageData.proposal.structure =
+          salesView.estimated_margin_rate_pct !== undefined && salesView.estimated_margin_rate_pct !== null
+            ? `예상 한도는 ${formatKrw(salesView.estimated_limit_krw)} 수준이고, 예상 마진율은 ${Number(salesView.estimated_margin_rate_pct).toFixed(2)}% 수준입니다. 요청 결제기간 ${context.requested_tenor_months || "-"}개월 기준으로 구조를 먼저 설명하는 접근이 적절합니다.`
+            : pageData.proposal.structure;
+        pageData.proposal.risks = riskNotes.length ? riskNotes.join(" ") : pageData.proposal.risks;
+        pageData.proposal.next = salesView.next_action || pageData.proposal.next;
+        pageData.email.subject = `${context.company_name || pageData.companyName} 관련 제안드립니다`;
+        if (context.sales_email_draft) {
+          pageData.email.bodyLines = String(context.sales_email_draft).split("\n");
+        }
+      }
+
+      function applyEnginePreset(presetKey) {
+        pageData = JSON.parse(JSON.stringify(defaultPageData));
+        deepMerge(pageData, engineVersionPresets[presetKey] || {});
+        renderPage();
+      }
+
+      function activateScreen(id) {
+        tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.screen === id));
+        screens.forEach((screen) => screen.classList.toggle("active", screen.id === id));
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => activateScreen(tab.dataset.screen));
+      });
+
+      document.querySelectorAll("[data-jump]").forEach((button) => {
+        button.addEventListener("click", () => activateScreen(button.dataset.jump));
+      });
+
+      document.getElementById("engine-version-select").addEventListener("change", (event) => {
+        applyEnginePreset(event.target.value);
+      });
+
+      document.getElementById("web-context-file").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const context = JSON.parse(text);
+          pageData = JSON.parse(JSON.stringify(defaultPageData));
+          applyWebContext(context);
+          renderPage();
+        } catch (error) {
+          window.alert("web_context.json을 읽는 중 오류가 발생했습니다.");
+        }
+      });
+
+      renderPage();
+    </script>
+  </body>
+</html>

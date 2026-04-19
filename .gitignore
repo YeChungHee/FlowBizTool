@@ -1,0 +1,9 @@
+__pycache__/
+data/api_keys.local.json
+data/dart_corp_codes_cache.json
+.DS_Store
+*.pyc
+*.log
+outputs/
+tmp/
+.env

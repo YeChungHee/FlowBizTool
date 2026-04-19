@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 3페이지 와이어프레임</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: rgba(255, 255, 255, 0.88);
+        --panel-strong: #ffffff;
+        --line: rgba(15, 23, 42, 0.08);
+        --text: #111827;
+        --muted: #6b7280;
+        --blue: #0a84ff;
+        --blue-soft: rgba(10, 132, 255, 0.12);
+        --green: #14804a;
+        --green-soft: rgba(20, 128, 74, 0.12);
+        --orange: #b45309;
+        --orange-soft: rgba(180, 83, 9, 0.12);
+        --gray-soft: rgba(15, 23, 42, 0.05);
+        --shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Apple SD Gothic Neo", "SF Pro KR", "Malgun Gothic", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(10, 132, 255, 0.12), transparent 28%),
+          radial-gradient(circle at top right, rgba(20, 128, 74, 0.08), transparent 24%),
+          var(--bg);
+      }
+
+      .page {
+        max-width: 1540px;
+        margin: 0 auto;
+        padding: 28px 24px 36px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 22px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.14;
+        letter-spacing: -0.03em;
+      }
+
+      .subcopy {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.65;
+        max-width: 780px;
+      }
+
+      .status-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 510px;
+      }
+
+      .status-card,
+      .panel {
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+      }
+
+      .status-card {
+        padding: 16px 18px;
+      }
+
+      .status-card .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .status-card .value {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      .flow-strip {
+        display: grid;
+        grid-template-columns: 1fr 72px 1fr 72px 1fr;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+
+      .flow-card {
+        padding: 18px 20px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+
+      .flow-card .step {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .flow-card strong {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+
+      .flow-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .arrow {
+        text-align: center;
+        color: var(--muted);
+        font-size: 30px;
+      }
+
+      .tabbar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .tab {
+        border: 0;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--muted);
+        padding: 12px 18px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .tab.active {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .screen {
+        display: none;
+      }
+
+      .screen.active {
+        display: block;
+      }
+
+      .screen-layout {
+        display: grid;
+        gap: 20px;
+      }
+
+      .layout-3col {
+        grid-template-columns: 320px minmax(0, 1fr) 340px;
+      }
+
+      .layout-2col {
+        grid-template-columns: 320px minmax(0, 1fr);
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        letter-spacing: -0.02em;
+      }
+
+      .panel h3 {
+        margin: 0 0 10px;
+        font-size: 17px;
+        letter-spacing: -0.02em;
+      }
+
+      .helper {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .field {
+        margin-bottom: 14px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .field input,
+      .field textarea,
+      .field select {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        font: inherit;
+        color: var(--text);
+      }
+
+      .field textarea {
+        min-height: 104px;
+        resize: vertical;
+      }
+
+      .dropzone {
+        border: 1.5px dashed rgba(10, 132, 255, 0.35);
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(10, 132, 255, 0.05);
+      }
+
+      .subsection {
+        margin-top: 12px;
+        padding: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .subsection-title {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .inline-note {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .badge-row,
+      .file-chip-list,
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge,
+      .chip,
+      .action-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .chip,
+      .action-chip.gray {
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text);
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.orange {
+        background: var(--orange-soft);
+        color: var(--orange);
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .action-chip.blue {
+        background: var(--blue);
+        color: white;
+      }
+
+      .action-chip {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kpi {
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      .kpi .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .kpi .value {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.12;
+      }
+
+      .kpi .meta {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .split-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .score-table,
+      .mini-grid,
+      .weight-table,
+      .check-list,
+      .wire-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .score-row,
+      .mini-card,
+      .weight-row,
+      .check-list li,
+      .wire-item {
+        background: rgba(248, 250, 252, 0.88);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 16px;
+      }
+
+      .score-row {
+        display: grid;
+        grid-template-columns: 1.2fr 0.7fr 0.7fr;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .score-row strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .score-row .desc {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .score-pill {
+        justify-self: end;
+        min-width: 78px;
+        border-radius: 999px;
+        padding: 10px 12px;
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .score-pill.cplus {
+        background: var(--orange-soft);
+        color: var(--orange);
+      }
+
+      .score-pill.c {
+        background: rgba(180, 35, 24, 0.08);
+        color: #8a2e16;
+      }
+
+      .report-preview {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+      }
+
+      .report-preview section + section {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      .report-preview h4 {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .report-preview p {
+        margin: 0;
+        line-height: 1.72;
+      }
+
+      .mini-card .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .mini-card .value {
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .weight-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .weight-bar {
+        width: 110px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .weight-bar span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        display: block;
+        background: linear-gradient(90deg, #0a84ff, #5ac8fa);
+        border-radius: inherit;
+      }
+
+      .check-list,
+      .wire-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .check-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .wire-item strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .wire-item p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .proposal-frame,
+      .email-frame {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 24px;
+      }
+
+      .proposal-frame section + section,
+      .email-frame section + section {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .proposal-frame h4,
+      .email-frame h4 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .proposal-frame p,
+      .email-frame p {
+        margin: 0;
+        line-height: 1.72;
+      }
+
+      .copybox {
+        padding: 14px 16px;
+        border: 1px dashed rgba(15, 23, 42, 0.14);
+        border-radius: 16px;
+        background: rgba(248, 250, 252, 0.7);
+      }
+
+      .footer-note {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 1360px) {
+        .topbar,
+        .flow-strip,
+        .layout-3col,
+        .layout-2col,
+        .split-grid,
+        .kpi-grid,
+        .status-strip {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        .topbar {
+          gap: 18px;
+        }
+
+        .status-strip {
+          min-width: 0;
+        }
+
+        .flow-strip {
+          gap: 10px;
+        }
+
+        .arrow {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">BizAiPro 3페이지 연동 와이어프레임</div>
+          <h1>학습평가, 제안서, 이메일이 한 흐름으로 이어지는 구조</h1>
+          <p class="subcopy">
+            이 와이어프레임은 `학습평가 페이지`를 허브로 두고, 결과를 `맥킨지 스타일 제안서`와
+            `이메일 컨텐츠`로 자연스럽게 이어주는 3개 메뉴의 연결 구조를 보여줍니다.
+          </p>
+        </div>
+        <div class="status-strip">
+          <div class="status-card">
+            <div class="label">현재 엔진</div>
+            <div class="value">BizAiPro v.1.16.01</div>
+          </div>
+          <div class="status-card">
+            <div class="label">이번 주 학습</div>
+            <div class="value">10 / 10</div>
+          </div>
+          <div class="status-card">
+            <div class="label">핵심 구조</div>
+            <div class="value">3개 메뉴 연동</div>
+          </div>
+        </div>
+      </header>
+
+      <section class="flow-strip">
+        <div class="flow-card">
+          <div class="step">Step 1</div>
+          <strong>학습평가 페이지</strong>
+          <p>평가 결과, 가중치 변화, 버전 변화를 보고 두 개의 트리거를 만든다.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flow-card">
+          <div class="step">Step 2</div>
+          <strong>제안서 생성하기</strong>
+          <p>신청업체 정보를 자동입력하고 맥킨지 스타일 제안서를 만든다.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="flow-card">
+          <div class="step">Step 3</div>
+          <strong>이메일 컨텐츠 생성하기</strong>
+          <p>제안서 핵심 내용을 제목별 이메일 템플릿으로 압축해 완성한다.</p>
+        </div>
+      </section>
+
+      <div class="tabbar">
+        <button class="tab active" data-screen="screen-eval">1. 학습평가 페이지</button>
+        <button class="tab" data-screen="screen-proposal">2. 제안서 생성하기</button>
+        <button class="tab" data-screen="screen-email">3. 이메일 컨텐츠 생성하기</button>
+      </div>
+
+      <section id="screen-eval" class="screen active">
+        <div class="screen-layout layout-3col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>입력 자료</h2>
+              <p class="helper">학습평가 페이지는 허브 화면입니다. 자료를 넣고 평가 결과를 만든 뒤 다음 단계로 넘깁니다.</p>
+              <div class="field">
+                <label>플로우스코어 리포트</label>
+                <div class="dropzone">
+                  <div class="file-chip-list">
+                    <span class="chip">에이튜드_리포트.pdf</span>
+                    <span class="badge green">완료</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>상담보고서</label>
+                <div class="dropzone">
+                  <div class="file-chip-list">
+                    <span class="chip">OEM 상담 노트</span>
+                    <span class="badge green">완료</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>추가 정보</label>
+                <div class="subsection">
+                  <span class="subsection-title">1. 파일/이미지 업로드</span>
+                  <div class="dropzone">
+                    <div class="file-chip-list">
+                      <span class="chip">정산내역.pdf</span>
+                      <span class="chip">공급처 이미지.png</span>
+                    </div>
+                    <div class="inline-note">PDF, XLSX, 이미지 파일 업로드</div>
+                  </div>
+                </div>
+                <div class="subsection">
+                  <span class="subsection-title">2. 링크 주소 입력</span>
+                  <input type="text" value="https://example.com/coupang-settlement-note" />
+                </div>
+                <div class="subsection">
+                  <span class="subsection-title">3. 메모 입력</span>
+                  <textarea>- 행사 SKU 중심 선매입 필요
+- 플랫폼별 정산주기 확인 필요
+- OEM 공급처 리스트 업데이트 예정</textarea>
+                </div>
+              </div>
+              <div class="field">
+                <label>내부심사리포트 노션 링크</label>
+                <input type="text" value="https://www.notion.so/example/internal-review-atude" />
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>학습 저장 옵션</h2>
+              <ul class="check-list">
+                <li><span>이 건을 학습 데이터로 저장</span><span class="badge green">예</span></li>
+                <li><span>업데이트 후보에 포함</span><span class="badge green">예</span></li>
+                <li><span>제안서와 이메일도 함께 생성</span><span class="badge green">예</span></li>
+              </ul>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <div class="badge-row" style="margin-bottom: 12px;">
+                <span class="badge orange">추가 확인 필요</span>
+              </div>
+              <h2>학습평가 결과</h2>
+              <p class="helper">이 페이지의 최종 목표는 `평가 결과 리포트`와 `제안서 생성하기` 두 개의 트리거를 만드는 것입니다.</p>
+              <div class="kpi-grid">
+                <div class="kpi">
+                  <div class="label">예상 한도액</div>
+                  <div class="value">117,753,000원</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">예상 마진율</div>
+                  <div class="value">8.75%</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">예상 마진액</div>
+                  <div class="value">10,303,388원</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">결제유예기간</div>
+                  <div class="value">2개월 적합</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="split-grid">
+              <article class="panel">
+                <h2>기업과 거래 해석</h2>
+                <div class="score-table">
+                  <div class="score-row">
+                    <div>
+                      <strong>신청업체</strong>
+                      <div class="desc">C+ / 운영력은 괜찮지만 재무와 외부 신호는 약함</div>
+                    </div>
+                    <div>62.62점</div>
+                    <div class="score-pill cplus">C+</div>
+                  </div>
+                  <div class="score-row">
+                    <div>
+                      <strong>매출처</strong>
+                      <div class="desc">C+ / 결제흐름은 괜찮지만 플랫폼 묶음 입력이라 외부 검증력은 약함</div>
+                    </div>
+                    <div>58.89점</div>
+                    <div class="score-pill cplus">C+</div>
+                  </div>
+                  <div class="score-row">
+                    <div>
+                      <strong>거래구조</strong>
+                      <div class="desc">C / 회수 속도와 결제기간 적합성이 낮음</div>
+                    </div>
+                    <div>54.57점</div>
+                    <div class="score-pill c">C</div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel">
+                <h2>연간 기대 효과</h2>
+                <ul class="wire-list">
+                  <li class="wire-item">
+                    <strong>연간 매출 증가액</strong>
+                    <p>(예상 한도액 + 마진액) x 6회 = 768,338,328원</p>
+                  </li>
+                  <li class="wire-item">
+                    <strong>연간 영업이익 증가액</strong>
+                    <p>768,338,328원 x 4.94% = 37,955,913원</p>
+                  </li>
+                  <li class="wire-item">
+                    <strong>먼저 확인할 점</strong>
+                    <p>월매출 급락, 긴 현금전환주기, 외부보강 한계가 남아 있습니다.</p>
+                  </li>
+                </ul>
+              </article>
+            </section>
+
+            <section class="panel">
+              <h2>맥킨지 스타일 미리보기</h2>
+              <div class="report-preview">
+                <section>
+                  <h4>Executive Summary</h4>
+                  <p>조건부 제안은 가능하지만, 회수 구조 보완이 먼저 필요합니다.</p>
+                </section>
+                <section>
+                  <h4>Client Situation</h4>
+                  <p>동대문 OEM 선매입이 필요하고, 회수는 이커머스 플랫폼 정산을 통해 이뤄지는 구조입니다.</p>
+                </section>
+                <section>
+                  <h4>Opportunity Assessment</h4>
+                  <p>예상 한도, 마진, 연간 기대 효과를 근거로 영업 제안을 시작할 수 있습니다.</p>
+                </section>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="action-row">
+                <button class="action-chip blue">평가 결과 리포트</button>
+                <button class="action-chip blue" data-jump="screen-proposal">제안서 생성하기</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Appendix</h2>
+              <p class="helper">결론이 먼저 나오고, 계산식은 마지막에 둡니다.</p>
+              <ul class="wire-list">
+                <li class="wire-item">
+                  <strong>점수 계산 방식</strong>
+                  <p>신청업체 / 매출처 / 거래구조 / 통합 점수 계산식</p>
+                </li>
+                <li class="wire-item">
+                  <strong>점수와 등급 기준</strong>
+                  <p>A ~ D 구간과 각 등급의 쉬운 의미 설명</p>
+                </li>
+              </ul>
+            </section>
+          </main>
+
+          <aside class="stack">
+            <section class="panel">
+              <h2>학습과 버전</h2>
+              <div class="mini-grid">
+                <div class="mini-card">
+                  <div class="label">학습 적격 여부</div>
+                  <div class="value">적격</div>
+                </div>
+                <div class="mini-card">
+                  <div class="label">이번 건 가중치</div>
+                  <div class="value">0.95</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>가중치 변화</h2>
+              <div class="weight-table">
+                <div class="weight-row">
+                  <span>신청업체</span>
+                  <div class="weight-bar"><span style="width: 39.85%"></span></div>
+                  <strong>39.85%</strong>
+                </div>
+                <div class="weight-row">
+                  <span>매출처</span>
+                  <div class="weight-bar"><span style="width: 34.87%"></span></div>
+                  <strong>34.87%</strong>
+                </div>
+                <div class="weight-row">
+                  <span>거래구조</span>
+                  <div class="weight-bar"><span style="width: 25.28%"></span></div>
+                  <strong>25.28%</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>기억할 계산 기준</h2>
+              <ul class="wire-list">
+                <li class="wire-item">
+                  <strong>실제 매입 기준</strong>
+                  <p>`한도액 + 마진액`이 실제 플로우페이 매입금 기준입니다.</p>
+                </li>
+                <li class="wire-item">
+                  <strong>연간 가능 횟수</strong>
+                  <p>1개월 = 12회 / 2개월 = 6회 / 3개월 = 4회</p>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="screen-proposal" class="screen">
+        <div class="screen-layout layout-2col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>자동 입력 정보</h2>
+              <div class="field">
+                <label>신청업체명</label>
+                <input type="text" value="에이튜드" />
+              </div>
+              <div class="field">
+                <label>사업자번호</label>
+                <input type="text" value="123-81-00000" />
+              </div>
+              <div class="field">
+                <label>대표자명</label>
+                <input type="text" value="홍길동" />
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>문서 액션</h2>
+              <div class="action-row">
+                <button class="action-chip gray">복사 아이콘</button>
+                <button class="action-chip gray">PDF 출력</button>
+              </div>
+              <p class="helper" style="margin-top: 12px;">내용 전체 복사와 PDF 출력이 가능한 구조로 설계합니다.</p>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <h2>제안서 생성하기</h2>
+              <p class="helper">자동 입력된 업체 정보를 기준으로 맥킨지 보고서 스타일 제안서를 간략하고 비즈니스톤으로 생성합니다.</p>
+              <div class="proposal-frame">
+                <section>
+                  <h4>Executive Summary</h4>
+                  <p>에이튜드 건은 현재 자료 기준으로 조건부 제안이 가능하며, 회수 구조 보완 시 연간 기대 효과를 설명할 수 있습니다.</p>
+                </section>
+                <section>
+                  <h4>Client Situation</h4>
+                  <p>동대문 OEM 제조 공급처에 선지급이 필요한 구조이며, 회수는 쿠팡, G마켓, 하프클럽 등 이커머스 플랫폼 정산을 통해 이뤄집니다.</p>
+                </section>
+                <section>
+                  <h4>Opportunity Assessment</h4>
+                  <p>예상 한도액 117,753,000원, 예상 마진율 8.75%, 예상 마진액 10,303,388원 기준으로 초기 제안이 가능합니다.</p>
+                </section>
+                <section>
+                  <h4>Expected Impact</h4>
+                  <p>2개월 결제유예 기준 연 6회 운영 시 연간 매출 증가액 768,338,328원, 추정 영업이익 증가액 37,955,913원을 기대할 수 있습니다.</p>
+                </section>
+                <section>
+                  <h4>Risks and Checks</h4>
+                  <p>매출 회수 흐름과 플랫폼 정산 증빙, OEM 공급처 증빙을 추가로 확인해야 제안 신뢰도를 높일 수 있습니다.</p>
+                </section>
+                <section>
+                  <h4>Next Actions</h4>
+                  <p>추가 자료 확보 후 제안서를 확정하고, 담당 영업이사가 후속 미팅 제안 메일을 발송합니다.</p>
+                </section>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="action-row">
+                <button class="action-chip blue" data-jump="screen-email">이메일 컨텐츠 생성하기</button>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+
+      <section id="screen-email" class="screen">
+        <div class="screen-layout layout-2col">
+          <aside class="stack">
+            <section class="panel">
+              <h2>자동 입력 정보</h2>
+              <div class="field">
+                <label>신청업체명</label>
+                <input type="text" value="에이튜드" />
+              </div>
+              <div class="field">
+                <label>사업자번호</label>
+                <input type="text" value="123-81-00000" />
+              </div>
+              <div class="field">
+                <label>대표자명</label>
+                <input type="text" value="홍길동" />
+              </div>
+              <div class="field">
+                <label>영업담당자 선택</label>
+                <select>
+                  <option>영업이사 예충희 (010-4815-1411)</option>
+                  <option>전략이사 박진용 (010-9600-1630)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>이메일 제목 선택</label>
+                <select>
+                  <option>에이튜드 대상 플로우페이 제안드립니다</option>
+                  <option>에이튜드 대상 검토 요청드립니다</option>
+                  <option>에이튜드 대상 조건부 제안드립니다</option>
+                  <option>에이튜드 대상 추가 자료 요청드립니다</option>
+                </select>
+              </div>
+              <div class="action-row">
+                <button class="action-chip gray">복사 아이콘</button>
+              </div>
+            </section>
+          </aside>
+
+          <main class="stack">
+            <section class="panel">
+              <h2>이메일 컨텐츠 생성하기</h2>
+              <p class="helper">선택한 제목과 담당자 정보에 맞춰 제안서 핵심 내용을 자동으로 압축해 메일 문안을 만듭니다.</p>
+              <div class="email-frame">
+                <section>
+                  <h4>메일 제목</h4>
+                  <p>에이튜드 대상 플로우페이 제안드립니다</p>
+                </section>
+                <section>
+                  <h4>이메일 본문</h4>
+                  <div class="copybox">
+                    <p>
+                      에이튜드 홍길동님 귀중,<br /><br />
+                      안녕하세요. 플로우페이 제안 내용을 공유드립니다.<br /><br />
+                      현재 자료 기준으로 에이튜드 건은 `추가 확인 필요` 수준으로 해석되며,
+                      예상 한도액은 117,753,000원, 예상 마진율은 8.75%, 예상 마진액은 10,303,388원입니다.
+                      또한 2개월 결제유예 기준 연 6회 운영 시 연간 매출 증가액 768,338,328원,
+                      추정 영업이익 증가액 37,955,913원을 기대할 수 있습니다.<br /><br />
+                      관련 제안서를 함께 검토해주시면, 추가 자료 확인 후 더 구체적인 조건으로 안내드리겠습니다.<br /><br />
+                      감사합니다.<br />
+                      영업이사 예충희 드림
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const screens = document.querySelectorAll(".screen");
+
+      function activateScreen(screenId) {
+        tabs.forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.screen === screenId);
+        });
+        screens.forEach((screen) => {
+          screen.classList.toggle("active", screen.id === screenId);
+        });
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => activateScreen(tab.dataset.screen));
+      });
+
+      document.querySelectorAll("[data-jump]").forEach((button) => {
+        button.addEventListener("click", () => activateScreen(button.dataset.jump));
+      });
+    </script>
+  </body>
+</html>

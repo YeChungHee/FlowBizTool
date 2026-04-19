@@ -1,0 +1,67 @@
+{
+  "report_type": "flowscore_credit_report_pdf",
+  "source_file": "신용평가리포트_(주)브리드비인터내셔널_2026-03-20.pdf",
+  "parser_version": "2026.04.19",
+  "company_name": "(주) 브리드비인터내셔널",
+  "short_name": "브리드비인터내셔널",
+  "business_number": "141-81-42329",
+  "representative_name": null,
+  "evaluation_date": "2026-03-20",
+  "incorporated_date": "2014-07-11",
+  "credit_grade": "BBB",
+  "total_score": 569.7,
+  "score_scale": 1000,
+  "pd_pct": 0.97,
+  "annual_discount_rate_pct": 0.41,
+  "monthly_credit_limit": "88.4억원",
+  "dimension_scores": {
+    "financial_soundness": 77.8,
+    "structural_stability": 75.9,
+    "operating_will": 68.7,
+    "transaction_soundness": 0.0,
+    "communication_issue": 28.9
+  },
+  "top_positive_factors": [
+    {
+      "factor": "금융비용대매출액비율",
+      "value": 0.07
+    },
+    {
+      "factor": "이자보상배율",
+      "value": 18.51
+    },
+    {
+      "factor": "자기자본비율",
+      "value": 53.03
+    }
+  ],
+  "top_negative_factors": [
+    {
+      "factor": "총자본세전계속사업이익율",
+      "value": 2.99
+    },
+    {
+      "factor": "순차입금의존도",
+      "value": 46.97
+    },
+    {
+      "factor": "영업현금흐름대총차입금비율",
+      "value": 6.36
+    }
+  ],
+  "financial_summary": {},
+  "recommended_credit_limit": {
+    "recommended": "88.4억원",
+    "minimum": "70.7억원",
+    "maximum": "106.0억원",
+    "limit_grade": "B"
+  },
+  "learning_ready": {
+    "usable": true,
+    "confidence": "medium-high",
+    "issues": [
+      "재무 요약표 추출 보정 필요"
+    ]
+  },
+  "normalized_excerpt": "FLOWSCOREReportDate: 2026-03-20FlowScore신용평가보고서AI기반중소기업동적신용평가리포트 (주) 브리드비인터내셔널사업자번호 : 141-**-***** BBB신용등급종합점수569.7 / 1,000부도확률 (PD) 0.97% 연간적용할인율0.41% 월간적정신용한도88.4억원본보고서는FlowScoreAI신용평가엔진에의해자동생성되었습니다 . 평가일 : 2026-03-20 | 설립일 : 2014-07-11Confidential — 276홀딩스 | FlowScorev4.01 / 5FLOWSCORE신용평가보고서 | 5차원평가요약 (주) 브리드비인터내셔널2026-03-205차원종합평가20406080100재무건전성77.8구조안75.9운영의지68.7거래건전성0.0통이슈28.9평가차원점수수준재무건전성77.8양호구조안정성75.9양호운영의지68.7양호거래건전성0.0위험소통이슈28.9취약평가모형가중치재무모형77.8점x50% 비재무모형72.3점x25% 거래모형0.0점x25% Top3긍정요인금융비용대매출액비율재무금융비용대매출액비율이 ( 가 ) 매우우수수준으로양호합니다 . 0.07이자보상배율재무이자보상배율이 ( 가 ) 매우우수수준으로양호합니다 . 18.51자기자본비율재무자기자본비율이 ( 가 ) 매우우수수준으로양호합니다 . 53.03Top3부정요인총자본세전계속사업이익율재무총자본세전계속사업이익율이 ( 가 ) 미흡수준으로개선이필요합니다 . 2.99순차입금의존도재무순차입금의존도이 ( 가 ) 미흡수준으로개선이필요합니다 . 46.97영업현금흐름대총차입금비율재무영업현금흐름대총차입금비율이 ( 가 ) 미흡수준으로개선이필요합니다 . 6.36종합의견종합적으로본기업은 'BBB ' 등급으로평가되며 , 채무불이행가능성이보통수준Confidential — 276홀딩스 | FlowScorev4.02 / 5FLOWSCORE신용평가보고서 | 재무분석 (주) 브리드비인터내셔널2026-03-20핵심재무비율 ( 벤치마크비교 ) 지표실적치벤치마크기준수준자기자본비율53.0% 상위50%+ / 하위20%- 상위부채비율88.6% 상위100%- / 하위300%+ 상위유동비율201.7% 상위150%+ / 하위80%- 상위영업이익률1.3% 상위8%+ / 하위0%- 평균순이익률 -0.4% 상위5%+ / 하위0%- 하위ROE ( 자기자본이익률 ) -1.8% 상위10%+ / 하위0%- 하위재무상태표요약 ( 단위 : 천원 ) 항목20232022YoY자산총계316.2억320."
+}

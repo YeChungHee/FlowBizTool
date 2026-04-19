@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 제안서 생성</title>
+    <link rel="stylesheet" href="./bizaipro_shared.css" />
+  </head>
+  <body class="proposal-page">
+    <div class="page-shell">
+      <div id="top-nav" class="top-nav"></div>
+
+      <header class="hero-grid">
+        <section class="hero-main">
+          <div class="brand-pill" id="proposal-hero-pill"></div>
+          <h1 id="proposal-hero-title"></h1>
+          <p class="subcopy" id="proposal-hero-subcopy"></p>
+        </section>
+        <aside class="hero-side">
+          <div class="status-card">
+            <div class="label">현재 엔진 버전</div>
+            <div class="value" id="hero-engine-version"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">현재 제안 상태</div>
+            <div class="value" id="hero-current-status"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">추천 결제기간</div>
+            <div class="value" id="hero-tenor"></div>
+          </div>
+        </aside>
+      </header>
+
+      <div class="layout-2col">
+        <aside class="stack">
+          <section class="panel">
+            <h2>자동 입력 정보</h2>
+            <div class="field">
+              <label>제안할 업체명</label>
+              <div class="fake-input" id="field-company-name"></div>
+            </div>
+            <div class="field">
+              <label>사업자번호</label>
+              <div class="fake-input" id="field-business-number"></div>
+            </div>
+            <div class="field">
+              <label>대표자명</label>
+              <div class="fake-input" id="field-representative"></div>
+            </div>
+            <div class="field">
+              <label id="field-context-label">전시회명 / 참여 연도</label>
+              <div class="fake-input" id="field-exhibition"></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>문서 액션</h2>
+            <div class="action-row">
+              <button class="btn gray" id="copy-proposal-btn">복사</button>
+              <button class="btn gray" id="print-proposal-btn">PDF 출력</button>
+              <a class="btn blue" href="./bizaipro_email_generator.html">이메일 컨텐츠 생성하기</a>
+            </div>
+            <p class="footer-note">복사는 전체 본문을, PDF 출력은 현재 페이지를 바로 인쇄 형식으로 엽니다.</p>
+          </section>
+        </aside>
+
+        <main class="stack">
+          <section class="panel">
+            <h2>BizAiPro 제안서 초안</h2>
+            <p class="helper">짧은 비즈니스 톤과 결론 우선 구조를 유지한 보고서형 출력입니다.</p>
+            <div class="doc-card" id="proposal-doc">
+              <section>
+                <h4>Executive Summary</h4>
+                <p id="proposal-executive"></p>
+              </section>
+              <section>
+                <h4>Company Snapshot</h4>
+                <p id="proposal-company"></p>
+              </section>
+              <section>
+                <h4>Exhibition Or Intake Context</h4>
+                <p id="proposal-exhibition"></p>
+              </section>
+              <section>
+                <h4>Opportunity Assessment</h4>
+                <p id="proposal-opportunity"></p>
+              </section>
+              <section>
+                <h4>Suggested Initial Structure</h4>
+                <p id="proposal-structure"></p>
+              </section>
+              <section>
+                <h4>Risks And Checks</h4>
+                <p id="proposal-risks"></p>
+              </section>
+              <section>
+                <h4>Next Actions</h4>
+                <p id="proposal-next"></p>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./bizaipro_shared.js"></script>
+    <script>
+      const shared = window.BizAiProShared;
+      shared.renderTopNav("proposal");
+
+      function renderProposal(state) {
+        document.getElementById("proposal-hero-pill").textContent = state.proposalHeroPill;
+        document.getElementById("proposal-hero-title").textContent = state.proposalHeroTitle;
+        document.getElementById("proposal-hero-subcopy").textContent = state.proposalHeroSubcopy;
+        document.getElementById("hero-engine-version").textContent = shared.formatEngineVersionLabel(state.engineVersion);
+        document.getElementById("hero-current-status").textContent = state.currentProposalState;
+        document.getElementById("hero-tenor").textContent = state.recommendedTenorText;
+
+        document.getElementById("field-company-name").textContent = state.companyName;
+        document.getElementById("field-business-number").textContent = state.businessNumber;
+        document.getElementById("field-representative").textContent = state.representativeName;
+        document.getElementById("field-context-label").textContent = state.proposalContextLabel;
+        document.getElementById("field-exhibition").textContent = state.proposalContextValue;
+
+        document.getElementById("proposal-executive").textContent = state.proposal.executive;
+        document.getElementById("proposal-company").textContent = state.proposal.company;
+        document.getElementById("proposal-exhibition").textContent = state.proposal.exhibition;
+        document.getElementById("proposal-opportunity").textContent = state.proposal.opportunity;
+        document.getElementById("proposal-structure").textContent = state.proposal.structure;
+        document.getElementById("proposal-risks").textContent = state.proposal.risks;
+        document.getElementById("proposal-next").textContent = state.proposal.next;
+      }
+
+      const state = shared.getStoredState();
+      renderProposal(state);
+
+      document.getElementById("copy-proposal-btn").addEventListener("click", async () => {
+        await shared.copyText(shared.buildProposalText(shared.getStoredState()));
+        window.alert("제안서 내용을 복사했습니다.");
+      });
+
+      document.getElementById("print-proposal-btn").addEventListener("click", () => {
+        window.print();
+      });
+    </script>
+  </body>
+</html>

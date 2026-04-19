@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowbiz-ultra.local/schemas/exhibition-company-db.json",
+  "title": "BizAiPro Exhibition Company DB Schema",
+  "description": "전시회 참여 기업 DB를 기반으로 콜드세일즈 제안서와 이메일을 생성하기 위한 최소 입력 스키마입니다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "company_name",
+    "exhibition_name",
+    "exhibition_info_url",
+    "participation_year",
+    "industry_or_items",
+    "homepage",
+    "contact_person"
+  ],
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "title": "기업명",
+      "minLength": 1,
+      "examples": [
+        "에이튜드"
+      ]
+    },
+    "exhibition_name": {
+      "type": "string",
+      "title": "전시회명",
+      "minLength": 1,
+      "examples": [
+        "코엑스 베이비페어"
+      ]
+    },
+    "exhibition_info_url": {
+      "type": "string",
+      "title": "전시회정보 제공 URL",
+      "minLength": 1,
+      "format": "uri",
+      "examples": [
+        "https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719"
+      ]
+    },
+    "participation_year": {
+      "type": "integer",
+      "title": "참가 연도",
+      "default": 2026,
+      "examples": [
+        2026
+      ]
+    },
+    "industry_or_items": {
+      "type": "string",
+      "title": "산업/품목",
+      "minLength": 1,
+      "examples": [
+        "패션 / 여성의류"
+      ]
+    },
+    "homepage": {
+      "type": "string",
+      "title": "홈페이지",
+      "minLength": 1,
+      "format": "uri",
+      "examples": [
+        "https://www.example.com"
+      ]
+    },
+    "contact_person": {
+      "type": "string",
+      "title": "담당자",
+      "minLength": 1,
+      "examples": [
+        "홍길동"
+      ]
+    },
+    "flow_score_report_available": {
+      "type": "boolean",
+      "title": "플로우스코어리포트 확보 여부",
+      "default": false
+    },
+    "flow_score_report_path": {
+      "type": "string",
+      "title": "플로우스코어리포트 경로",
+      "default": ""
+    },
+    "website_summary": {
+      "type": "string",
+      "title": "홈페이지 요약",
+      "default": ""
+    },
+    "representative_name": {
+      "type": "string",
+      "title": "대표자명",
+      "default": ""
+    },
+    "non_financial_notes": {
+      "type": "array",
+      "title": "비재무 메모",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "sales_mode": {
+      "type": "string",
+      "title": "세일즈 모드",
+      "enum": [
+        "cold_sales_exhibition"
+      ],
+      "default": "cold_sales_exhibition"
+    }
+  }
+}

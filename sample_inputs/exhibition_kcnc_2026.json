@@ -1,0 +1,41 @@
+{
+  "company_name": "케이씨엔씨(주)",
+  "business_registration_number": "755-88-02028",
+  "representative_name": "김형주",
+  "exhibition_name": "SIMTOS 2026",
+  "exhibition_info_url": "https://simtos.org/eng/bizmatching/exhibitor_Company_detail.do?bidx=719",
+  "participation_year": 2026,
+  "industry_or_items": "제조장비용 CNC 제어시스템 / TENUX / 스마트 제어시스템",
+  "homepage": "https://kcnc.co.kr",
+  "contact_person": "김형주",
+  "flow_score_report_available": true,
+  "flow_score_report_path": "/Users/appler/Downloads/케이씨엔씨(주)_리포트.pdf",
+  "website_summary": "KCNC는 제조장비용 제어시스템 TENUX를 중심으로 CNC 제어기, 구동계, TORUS 플랫폼을 소개하고 있으며, 현대자동차그룹 계열사이자 제어시스템 기술 전문가 그룹으로 자사를 설명합니다.",
+  "representative_source_notes": [
+    "대표자명 김형주",
+    "설립일자 2022-06-23",
+    "주소 경기도 군포시 군포첨단산업2로 32"
+  ],
+  "financial_summary": {
+    "credit_grade": "BB+",
+    "cashflow_grade": "불량",
+    "evaluation_date": "2026-04-01",
+    "revenue_2024_krw_thousand": null,
+    "operating_profit_2024_krw_thousand": -563240,
+    "net_profit_2024_krw_thousand": -423427
+  },
+  "cold_sales_hypothesis": {
+    "why_now": [
+      "SIMTOS 2026 참가 기업으로서 고객사 접점 확대와 사업화 속도 확보가 중요해 보입니다.",
+      "CNC 제어기, 구동계, 플랫폼 공급 구조상 부품 및 외주 조달 시점과 매출 회수 시점 간 자금 공백이 발생할 수 있습니다."
+    ],
+    "suggested_use_case": "제어시스템 관련 핵심 부품, 모듈, 외주 가공 또는 개발/납품 직전 매입 자금 연결",
+    "required_follow_up_docs": [
+      "최근 공급계약 또는 발주서 샘플",
+      "최근 세금계산서 및 매출채권 회수 조건",
+      "주요 매입처/외주처 리스트",
+      "주요 고객사 결제 조건"
+    ]
+  },
+  "sales_mode": "cold_sales_exhibition"
+}

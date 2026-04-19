@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 엔진 버전 비교</title>
+    <link rel="stylesheet" href="./bizaipro_shared.css" />
+  </head>
+  <body class="compare-page">
+    <div class="page-shell">
+      <div id="top-nav" class="top-nav"></div>
+
+      <header class="hero-grid">
+        <section class="hero-main">
+          <div class="brand-pill">엔진 버전 비교</div>
+          <h1>업데이트 전후 평가 변화와 가중치 변화를 함께 봅니다</h1>
+          <p class="subcopy">
+            같은 회사라도 엔진 버전에 따라 제안 우선순위, 액션, 결제기간, 재무 필터 해석이 어떻게 달라지는지 비교하는 화면입니다.
+          </p>
+        </section>
+        <aside class="hero-side">
+          <div class="status-card">
+            <div class="label">현재 저장된 엔진</div>
+            <div class="value" id="hero-engine-version"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">이번 주 학습</div>
+            <div class="value" id="hero-learning-count"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">업데이트 상태</div>
+            <div class="value" id="hero-update-status"></div>
+          </div>
+        </aside>
+      </header>
+
+      <section class="panel" style="margin-bottom: 18px;">
+        <h2>비교할 엔진 선택</h2>
+        <div class="layout-2col-wide">
+          <div class="field">
+            <label>왼쪽 엔진</label>
+            <select id="left-engine-select"></select>
+          </div>
+          <div class="field">
+            <label>오른쪽 엔진</label>
+            <select id="right-engine-select"></select>
+          </div>
+        </div>
+      </section>
+
+      <div class="compare-grid" style="margin-bottom: 18px;">
+        <section class="panel">
+          <h2 id="left-title"></h2>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="label">제안 상태</div>
+              <div class="value compact" id="left-status"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">제안 우선순위</div>
+              <div class="value compact" id="left-priority"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">결제유예기간</div>
+              <div class="value compact" id="left-tenor"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">예상 마진율</div>
+              <div class="value compact" id="left-margin"></div>
+            </div>
+          </div>
+          <div class="item-list" style="margin-top: 14px;">
+            <div class="item-card">
+              <strong>주요 변경점</strong>
+              <ul id="left-changes"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 id="right-title"></h2>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="label">제안 상태</div>
+              <div class="value compact" id="right-status"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">제안 우선순위</div>
+              <div class="value compact" id="right-priority"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">결제유예기간</div>
+              <div class="value compact" id="right-tenor"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="label">예상 마진율</div>
+              <div class="value compact" id="right-margin"></div>
+            </div>
+          </div>
+          <div class="item-list" style="margin-top: 14px;">
+            <div class="item-card">
+              <strong>주요 변경점</strong>
+              <ul id="right-changes"></ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>핵심 비교 표</h2>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>항목</th>
+              <th>왼쪽 엔진</th>
+              <th>오른쪽 엔진</th>
+              <th>변화</th>
+            </tr>
+          </thead>
+          <tbody id="compare-table-body"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <script src="./bizaipro_shared.js"></script>
+    <script>
+      const shared = window.BizAiProShared;
+      shared.renderTopNav("compare");
+
+      function populateSelects() {
+        const options = shared.getPresetOptions();
+        const left = document.getElementById("left-engine-select");
+        const right = document.getElementById("right-engine-select");
+        left.innerHTML = options.map((item) => `<option value="${item.value}" ${item.value === "latest" ? "selected" : ""}>${item.label}</option>`).join("");
+        right.innerHTML = options.map((item) => `<option value="${item.value}" ${item.value === "previous" ? "selected" : ""}>${item.label}</option>`).join("");
+      }
+
+      function renderSide(prefix, state) {
+        document.getElementById(`${prefix}-title`).textContent = shared.formatEngineVersionLabel(state.engineVersion);
+        document.getElementById(`${prefix}-status`).textContent = state.currentProposalState;
+        document.getElementById(`${prefix}-priority`).textContent = `${state.proposalPriority} / ${state.proposalPriorityState}`;
+        document.getElementById(`${prefix}-tenor`).textContent = state.recommendedTenorText;
+        document.getElementById(`${prefix}-margin`).textContent = state.estimatedMarginValue;
+        document.getElementById(`${prefix}-changes`).innerHTML = (state.changeNotes || []).map((item) => `<li>${item}</li>`).join("");
+      }
+
+      function compareValue(left, right) {
+        if (left === right) return '<span class="note-text">변화 없음</span>';
+        return `<span class="delta up">${left} → ${right}</span>`;
+      }
+
+      function renderCompare() {
+        const leftState = shared.getCompareState(document.getElementById("left-engine-select").value);
+        const rightState = shared.getCompareState(document.getElementById("right-engine-select").value);
+        const currentState = shared.getStoredState();
+
+        document.getElementById("hero-engine-version").textContent = shared.formatEngineVersionLabel(currentState.engineVersion);
+        document.getElementById("hero-learning-count").textContent = currentState.learningCount;
+        document.getElementById("hero-update-status").textContent = currentState.updateStatus;
+
+        renderSide("left", leftState);
+        renderSide("right", rightState);
+
+        const rows = [
+          ["현재 제안 상태", leftState.currentProposalState, rightState.currentProposalState],
+          ["추천 첫 액션", leftState.heroNextAction, rightState.heroNextAction],
+          ["추천 결제기간", leftState.recommendedTenorText, rightState.recommendedTenorText],
+          ["재무 필터 신호", leftState.financialFilterSignal, rightState.financialFilterSignal],
+          ["현금흐름 신호", leftState.cashflowSignal, rightState.cashflowSignal],
+          ["예상 한도", leftState.estimatedLimitValue, rightState.estimatedLimitValue],
+          ["예상 마진율", leftState.estimatedMarginValue, rightState.estimatedMarginValue],
+          ["학습 가중치", leftState.learningWeight, rightState.learningWeight],
+        ];
+
+        document.getElementById("compare-table-body").innerHTML = rows
+          .map(
+            ([label, left, right]) => `
+              <tr>
+                <td>${label}</td>
+                <td>${left}</td>
+                <td>${right}</td>
+                <td>${compareValue(left, right)}</td>
+              </tr>
+            `
+          )
+          .join("");
+      }
+
+      populateSelects();
+      renderCompare();
+      document.getElementById("left-engine-select").addEventListener("change", renderCompare);
+      document.getElementById("right-engine-select").addEventListener("change", renderCompare);
+    </script>
+  </body>
+</html>

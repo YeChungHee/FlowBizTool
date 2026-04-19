@@ -1,0 +1,51 @@
+<svg width="1440" height="860" viewBox="0 0 1440 860" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="860" fill="#F7F9FC"/>
+
+  <defs>
+    <pattern id="dotGridV3" x="0" y="0" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="17" cy="17" r="1.8" fill="#C7CDD8"/>
+    </pattern>
+    <filter id="softShadowV3" x="0" y="0" width="1440" height="860" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="860" fill="url(#dotGridV3)"/>
+
+  <g filter="url(#softShadowV3)">
+    <rect x="46" y="60" width="1348" height="120" rx="30" fill="white" stroke="#E7EBF2" stroke-width="2"/>
+
+    <path d="M74 116C74 97.2223 89.2223 82 108 82H410C428.778 82 444 97.2223 444 116V156H74V116Z" fill="#9FA4AE" stroke="#737985" stroke-width="4"/>
+    <text x="259" y="136" text-anchor="middle" fill="white" font-family="Apple SD Gothic Neo, sans-serif" font-size="34" font-weight="800">학습 모드</text>
+
+    <path d="M498 116C498 97.2223 513.222 82 532 82H834C852.778 82 868 97.2223 868 116V156H498V116Z" fill="#ECEFF4" stroke="#D2D7E0" stroke-width="3"/>
+    <text x="683" y="136" text-anchor="middle" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="34" font-weight="800">전시회 모드</text>
+
+    <path d="M30 156H1340V726C1340 744.778 1324.78 760 1306 760H64C45.2223 760 30 744.778 30 726V156Z" fill="white" stroke="#6F737A" stroke-width="4"/>
+
+    <rect x="102" y="206" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="148" y="284" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">학습시킬 엔진 선택</text>
+
+    <rect x="744" y="206" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="790" y="284" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">리포트 결과 파일</text>
+
+    <rect x="102" y="376" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="148" y="454" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">플로우스코어 리포트</text>
+
+    <rect x="744" y="376" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="790" y="454" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">상담보고서</text>
+
+    <rect x="102" y="546" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="148" y="624" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">내부심사보고서</text>
+
+    <rect x="744" y="546" width="586" height="132" rx="42" fill="white" stroke="#E6EAF1" stroke-width="3"/>
+    <text x="790" y="624" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="32" font-weight="800">추가 정보</text>
+
+    <rect x="92" y="714" width="1180" height="70" rx="26" fill="#F6F8FB" stroke="#E4E8EF" stroke-width="2"/>
+    <rect x="108" y="728" width="280" height="42" rx="21" fill="#3B82F6"/>
+    <text x="248" y="755" text-anchor="middle" fill="white" font-family="Apple SD Gothic Neo, sans-serif" font-size="22" font-weight="700">1. 입력 저장</text>
+    <text x="548" y="755" text-anchor="middle" fill="#7C8799" font-family="Apple SD Gothic Neo, sans-serif" font-size="22" font-weight="700">2. 결과 보기</text>
+    <text x="824" y="755" text-anchor="middle" fill="#7C8799" font-family="Apple SD Gothic Neo, sans-serif" font-size="22" font-weight="700">3. 제안서</text>
+    <text x="1085" y="755" text-anchor="middle" fill="#7C8799" font-family="Apple SD Gothic Neo, sans-serif" font-size="22" font-weight="700">4. 이메일</text>
+  </g>
+</svg>

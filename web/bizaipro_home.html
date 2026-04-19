@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 홈</title>
+    <link rel="stylesheet" href="./bizaipro_shared.css" />
+  </head>
+  <body class="home-page">
+    <div class="page-shell">
+      <div id="top-nav" class="top-nav"></div>
+      <div class="top-spacer"></div>
+
+      <div class="home-dashboard">
+        <aside class="home-column">
+          <section class="panel home-sticky learning-dashboard-panel">
+            <div class="section-title">
+              <h2>엔진 학습 대시보드</h2>
+            </div>
+            <p class="helper">학습된 자료 수와 현재 적용 엔진 특징을 한 번에 확인합니다.</p>
+
+            <div class="learning-stat-grid">
+              <div class="learning-stat-card orange">
+                <div class="label">학습된<br />기업리포트</div>
+                <div class="value" id="learning-company-reports">0</div>
+              </div>
+              <div class="learning-stat-card yellow">
+                <div class="label">학습된<br />상담보고서</div>
+                <div class="value" id="learning-consultation-reports">0</div>
+              </div>
+              <div class="learning-stat-card blue">
+                <div class="label">학습된<br />심사보고서</div>
+                <div class="value" id="learning-internal-reviews">0</div>
+              </div>
+            </div>
+
+            <div class="engine-insight-card">
+              <div class="section-title">
+                <h3>현재 적용 엔진</h3>
+                <span class="mini-pill">엔진</span>
+              </div>
+              <div class="engine-insight-version">
+                <strong id="dashboard-engine-name">BizAiPro</strong>
+                <span id="dashboard-engine-version">v.1.16.01</span>
+              </div>
+              <div class="engine-insight-meta">
+                <div class="meta-row">
+                  <span>현재 선택 기업</span>
+                  <strong id="dashboard-company">케이씨엔씨(주)</strong>
+                </div>
+                <div class="meta-row">
+                  <span>현재 제안 상태</span>
+                  <strong id="dashboard-status">추가 확인 필요</strong>
+                </div>
+                <div class="meta-row">
+                  <span>최신 업데이트 반영 학습</span>
+                  <strong id="dashboard-update-learning-count">10건</strong>
+                </div>
+              </div>
+            <div class="engine-trait-list" id="engine-trait-list"></div>
+            </div>
+
+            <div class="learning-history-card">
+              <div class="section-title">
+                <h3>최근 실제 학습 데이터</h3>
+                <span class="mini-pill" id="learning-history-total-pill">총 0건</span>
+              </div>
+              <div class="learning-history-list" id="learning-history-list">
+                <div class="learning-history-empty">아직 반영된 학습 데이터가 없습니다.</div>
+              </div>
+              <div class="learning-history-actions" id="learning-history-actions" hidden>
+                <button class="btn gray small" id="learning-history-more-btn" type="button">10개 더 보기</button>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <main class="home-column">
+          <section class="panel home-main-card">
+            <div class="section-title">
+              <h1>입력 시작</h1>
+            </div>
+            <div class="mode-shell" id="mode-shell" data-active-mode="learning">
+              <input class="mode-toggle" type="radio" name="home-mode-toggle" id="mode-learning-radio" checked />
+              <input class="mode-toggle" type="radio" name="home-mode-toggle" id="mode-exhibition-radio" />
+              <div class="mode-switcher" role="tablist" aria-label="입력 모드">
+                <label class="mode-tab" id="learning-tab" data-mode="learning" for="mode-learning-radio" role="tab" aria-selected="true">학습 모드</label>
+                <label class="mode-tab" id="exhibition-tab" data-mode="exhibition" for="mode-exhibition-radio" role="tab" aria-selected="false">전시회 모드</label>
+              </div>
+
+              <div class="mode-panel" id="learning-panel" data-mode-panel="learning">
+                <div class="mode-form-grid">
+                  <div class="mode-card control-card">
+                    <strong>학습시킬 엔진 선택</strong>
+                    <div class="field">
+                      <select id="training-engine-select"></select>
+                    </div>
+                  </div>
+                <div class="mode-card control-card">
+                  <strong>상담리포트</strong>
+                  <div class="field">
+                    <input id="learning-consulting-link" type="url" placeholder="노션 페이지 링크 입력" />
+                  </div>
+                </div>
+                </div>
+
+                <div class="mode-form-grid">
+                  <div class="mode-card">
+                    <strong>플로우스코어 리포트</strong>
+                    <div class="field">
+                      <input id="learning-flowscore-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>상담보고서</strong>
+                    <div class="field">
+                      <input id="learning-consulting-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>내부심사보고서</strong>
+                    <div class="field">
+                      <input id="learning-internal-link" type="url" placeholder="노션 링크 입력" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>추가 정보</strong>
+                    <div class="field">
+                      <textarea id="learning-extra-info" placeholder="링크, 파일명, 메모를 자유롭게 입력"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mode-process">
+                  <div class="processing-panel" id="learning-processing-panel" hidden>
+                    <div class="processing-head">
+                      <strong>학습모드 처리 상태</strong>
+                      <span class="processing-stage" id="learning-processing-stage">대기</span>
+                    </div>
+                    <div class="processing-steps" id="learning-processing-steps"></div>
+                    <div class="processing-items" id="learning-processing-items"></div>
+                  </div>
+                  <div class="save-feedback" id="learning-save-feedback"></div>
+                  <div class="process-bar">
+                    <button class="process-step active" id="learning-save-btn" type="button">1. 입력 완료</button>
+                    <a class="process-step process-link" href="./bizaipro_evaluation_result.html">2. 결과 보기</a>
+                    <a class="process-step process-link" href="./bizaipro_proposal_generator.html">3. 제안서</a>
+                    <a class="process-step process-link" href="./bizaipro_email_generator.html">4. 이메일</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mode-panel" id="exhibition-panel" data-mode-panel="exhibition" hidden>
+                <div class="mode-form-grid">
+                  <div class="mode-card">
+                    <strong>전시회 정보 제공 URL</strong>
+                    <div class="field">
+                      <input id="exhibition-info-url" type="url" placeholder="참가기업 공개 근거 URL 입력" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>해당 기업 웹주소 URL</strong>
+                    <div class="field">
+                      <input id="exhibition-website-url" type="url" placeholder="기업 홈페이지 URL 입력" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mode-form-grid">
+                  <div class="mode-card">
+                    <strong>기업리포트(선택)</strong>
+                    <div class="field">
+                      <input id="exhibition-company-report" type="file" accept=".pdf,.txt,.doc,.docx" />
+                    </div>
+                    <div class="autofill-row">
+                      <button class="btn blue" id="exhibition-autofill-btn" type="button">자동 입력하기</button>
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>전시회모드 핵심 입력</strong>
+                    <p>URL 2개를 기준으로 전시회명, 참가 연도, 기업명을 먼저 채웁니다.</p>
+                    <p style="margin-top:8px;">추출이 비면 기업리포트를 보조 근거로 다시 읽습니다.</p>
+                  </div>
+                </div>
+
+                <div class="mode-form-grid three">
+                  <div class="mode-card">
+                    <strong>전시회명</strong>
+                    <div class="field">
+                      <input id="exhibition-name" type="text" placeholder="자동 입력" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>참가 연도</strong>
+                    <div class="field">
+                      <input id="exhibition-year" type="number" placeholder="자동 입력" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>기업명</strong>
+                    <div class="field">
+                      <input id="exhibition-company-name" type="text" placeholder="자동 입력" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mode-form-grid">
+                  <div class="mode-card">
+                    <strong>산업 / 품목</strong>
+                    <div class="field">
+                      <input id="exhibition-industry-item" type="text" placeholder="예: CNC 제어시스템 / 자동화 부품" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>담당자</strong>
+                    <div class="field">
+                      <input id="exhibition-contact-name" type="text" placeholder="담당자명 또는 대표자명 입력" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mode-form-grid">
+                  <div class="mode-card">
+                    <strong>플로우스코어 입력</strong>
+                    <div class="field">
+                      <input id="exhibition-flowscore-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>추가 정보</strong>
+                    <div class="field">
+                      <textarea id="exhibition-extra-info" placeholder="링크, 이미지 설명, 메모를 자유롭게 입력"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mode-process">
+                  <div class="processing-panel" id="exhibition-processing-panel" hidden>
+                    <div class="processing-head">
+                      <strong>전시회모드 처리 상태</strong>
+                      <span class="processing-stage" id="exhibition-processing-stage">대기</span>
+                    </div>
+                    <div class="processing-steps" id="exhibition-processing-steps"></div>
+                    <div class="processing-items" id="exhibition-processing-items"></div>
+                  </div>
+                  <div class="save-feedback" id="exhibition-save-feedback"></div>
+                  <div class="process-bar">
+                    <button class="process-step active" id="exhibition-save-btn" type="button">1. 입력 완료</button>
+                    <a class="process-step process-link" href="./bizaipro_evaluation_result.html">2. 결과 보기</a>
+                    <a class="process-step process-link" href="./bizaipro_proposal_generator.html">3. 제안서</a>
+                    <a class="process-step process-link" href="./bizaipro_email_generator.html">4. 이메일</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <aside class="home-column">
+          <section class="panel home-sticky">
+            <div class="section-title">
+              <h2>결과 + 다음 스텝</h2>
+            </div>
+
+            <div class="result-highlight" style="margin-bottom: 16px;">
+              <div class="headline" id="result-headline"></div>
+              <div class="summary" id="result-summary"></div>
+            </div>
+
+            <div class="kpi-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+              <div class="kpi-card">
+                <div class="label">제안 우선순위</div>
+                <div class="value compact" id="result-priority"></div>
+              </div>
+              <div class="kpi-card">
+                <div class="label">재무 필터 신호</div>
+                <div class="value compact" id="result-financial"></div>
+              </div>
+              <div class="kpi-card">
+                <div class="label">예상 한도</div>
+                <div class="value compact" id="result-limit"></div>
+              </div>
+              <div class="kpi-card">
+                <div class="label">예상 마진율</div>
+                <div class="value compact" id="result-margin"></div>
+              </div>
+            </div>
+
+            <div class="home-trigger-grid" style="margin-top: 16px;">
+              <div class="home-trigger">
+                <strong>평가 결과 리포트</strong>
+                <p>현재 해석과 변화 보기, 가중치 상태를 먼저 확인합니다.</p>
+                <a class="btn blue" href="./bizaipro_evaluation_result.html">평가 결과 보기</a>
+              </div>
+              <div class="home-trigger">
+                <strong>제안서 생성하기</strong>
+                <p>현재 결과를 바로 맥킨지 스타일 제안서로 변환합니다.</p>
+                <a class="btn gray" href="./bizaipro_proposal_generator.html">제안서 생성</a>
+              </div>
+              <div class="home-trigger">
+                <strong>이메일 컨텐츠 생성하기</strong>
+                <p>제안서 핵심 수치를 기반으로 메일 문안을 자동 만듭니다.</p>
+                <a class="btn gray" href="./bizaipro_email_generator.html">이메일 생성</a>
+              </div>
+              <div class="home-trigger">
+                <strong>엔진 버전 비교</strong>
+                <p>업데이트 전후 어떤 판단이 달라졌는지 바로 비교합니다.</p>
+                <a class="btn gray" href="./bizaipro_engine_compare.html">버전 비교</a>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script src="./bizaipro_shared.js"></script>
+    <script>
+      const shared = window.BizAiProShared;
+      shared.renderTopNav("home");
+      let dashboardSummary = null;
+      let learningHistoryOffset = 0;
+      let learningHistoryTotal = 0;
+      let learningHistoryItems = [];
+
+      function setMode(mode) {
+        const state = shared.getStoredState();
+        const nextMode = mode === "exhibition" ? "exhibition" : "learning";
+        state.mode = nextMode;
+        shared.saveState(state);
+        const shell = document.getElementById("mode-shell");
+        const learningRadio = document.getElementById("mode-learning-radio");
+        const exhibitionRadio = document.getElementById("mode-exhibition-radio");
+        if (shell) {
+          shell.dataset.activeMode = nextMode;
+        }
+        if (learningRadio) {
+          learningRadio.checked = nextMode === "learning";
+        }
+        if (exhibitionRadio) {
+          exhibitionRadio.checked = nextMode === "exhibition";
+        }
+        document.querySelectorAll(".mode-tab").forEach((button) => {
+          const isActive = button.dataset.mode === nextMode;
+          button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        document.querySelectorAll(".mode-panel").forEach((panel) => {
+          const isActive = panel.dataset.modePanel === nextMode;
+          panel.classList.toggle("active", isActive);
+          panel.hidden = !isActive;
+        });
+      }
+
+      window.setHomeMode = setMode;
+
+      function fillHomeInputs(state) {
+        const setValue = (id, value) => {
+          const target = document.getElementById(id);
+          if (target) target.value = value || "";
+        };
+
+        setValue("exhibition-info-url", state.exhibitionInfoUrl);
+        setValue("exhibition-website-url", state.website);
+        setValue("exhibition-name", state.exhibitionName);
+        setValue("exhibition-year", state.exhibitionYear);
+        setValue("exhibition-company-name", state.companyName);
+        setValue("exhibition-industry-item", state.industryItem);
+        setValue("exhibition-contact-name", state.representativeName);
+        setValue("learning-consulting-link", state.consultingReportUrl);
+        setValue("learning-internal-link", state.internalReviewUrl);
+        setValue("learning-extra-info", state.learningExtraInfo);
+        setValue("exhibition-extra-info", state.exhibitionExtraInfo);
+      }
+
+      function renderDashboard(state) {
+        const stats = dashboardSummary?.learning_cards || {};
+        document.getElementById("learning-company-reports").textContent = stats.company_reports ?? 0;
+        document.getElementById("learning-consultation-reports").textContent = stats.consultation_reports ?? 0;
+        document.getElementById("learning-internal-reviews").textContent = stats.internal_reviews ?? 0;
+
+        document.getElementById("dashboard-engine-name").textContent = dashboardSummary?.engine_name || "BizAiPro";
+        document.getElementById("dashboard-engine-version").textContent = shared.formatEngineVersionLabel(state.engineVersion);
+        document.getElementById("dashboard-company").textContent = state.companyName;
+        document.getElementById("dashboard-status").textContent = state.currentProposalState;
+
+        const latestQualified = dashboardSummary?.latest_update?.qualified_cases;
+        document.getElementById("dashboard-update-learning-count").textContent =
+          latestQualified !== undefined && latestQualified !== null ? `${latestQualified}건` : "0건";
+
+        const traitList = document.getElementById("engine-trait-list");
+        const traits = shared.inferEngineTraits(state.engineVersion);
+        traitList.innerHTML = traits
+          .map((item) => `<div class="engine-trait-item">${item}</div>`)
+          .join("");
+        renderLearningHistorySummary();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      const PROCESSING_STEP_LABELS = ["입력 확인", "자료 읽기", "구조화", "평가 반영", "결과 저장", "완료"];
+
+      function createProcessingSession(mode, labels) {
+        const stageEl = document.getElementById(`${mode}-processing-stage`);
+        const stepsEl = document.getElementById(`${mode}-processing-steps`);
+        const itemsEl = document.getElementById(`${mode}-processing-items`);
+        const panelEl = document.getElementById(`${mode}-processing-panel`);
+        const items = labels.map(([key, label]) => ({ key, label, state: "pending", detail: "대기 중입니다." }));
+        let currentStepIndex = 0;
+
+        function render(stageLabel, stepIndex = currentStepIndex) {
+          currentStepIndex = stepIndex;
+          if (panelEl) panelEl.hidden = false;
+          if (stageEl) stageEl.textContent = stageLabel;
+          if (stepsEl) {
+            stepsEl.innerHTML = PROCESSING_STEP_LABELS.map((label, index) => {
+              let tone = "pending";
+              if (index < stepIndex) tone = "done";
+              else if (index === stepIndex) tone = "active";
+              return `<span class="processing-step-chip ${tone}">${label}</span>`;
+            }).join("");
+          }
+          if (itemsEl) {
+            itemsEl.innerHTML = items.map((item) => `
+              <div class="processing-item ${item.state}">
+                <div class="processing-item-main">
+                  <span class="processing-dot ${item.state}"></span>
+                  <strong>${escapeHtml(item.label)}</strong>
+                </div>
+                <div class="processing-item-detail">${escapeHtml(item.detail)}</div>
+              </div>
+            `).join("");
+          }
+        }
+
+        return {
+          start(stageLabel = "입력값 확인 중", stepIndex = 0) {
+            render(stageLabel, stepIndex);
+          },
+          update(key, state, detail) {
+            const target = items.find((item) => item.key === key);
+            if (!target) return;
+            target.state = state;
+            target.detail = detail;
+            render(stageEl ? stageEl.textContent : "처리 중", currentStepIndex);
+          },
+          setStage(stageLabel, stepIndex) {
+            render(stageLabel, stepIndex);
+          },
+          complete(message) {
+            render(message || "완료", PROCESSING_STEP_LABELS.length - 1);
+          },
+          fail(message) {
+            if (stageEl) stageEl.textContent = message || "실패";
+            if (panelEl) panelEl.hidden = false;
+            if (stepsEl) {
+              stepsEl.innerHTML = PROCESSING_STEP_LABELS.map((label) => `<span class="processing-step-chip error">${label}</span>`).join("");
+            }
+            if (itemsEl) {
+              itemsEl.innerHTML = items.map((item) => `
+                <div class="processing-item ${item.state}">
+                  <div class="processing-item-main">
+                    <span class="processing-dot ${item.state}"></span>
+                    <strong>${escapeHtml(item.label)}</strong>
+                  </div>
+                  <div class="processing-item-detail">${escapeHtml(item.detail)}</div>
+                </div>
+              `).join("");
+            }
+          },
+        };
+      }
+
+      function renderLearningHistorySummary() {
+        const total = dashboardSummary?.total_learning_cases ?? learningHistoryTotal ?? 0;
+        learningHistoryTotal = total;
+        const totalPill = document.getElementById("learning-history-total-pill");
+        if (totalPill) {
+          totalPill.textContent = `총 ${total}건`;
+        }
+      }
+
+      function renderLearningHistoryList() {
+        const list = document.getElementById("learning-history-list");
+        const actions = document.getElementById("learning-history-actions");
+        const moreBtn = document.getElementById("learning-history-more-btn");
+        if (!list || !actions || !moreBtn) return;
+
+        if (!learningHistoryItems.length) {
+          list.innerHTML = `<div class="learning-history-empty">아직 반영된 학습 데이터가 없습니다.</div>`;
+          actions.hidden = true;
+          return;
+        }
+
+        list.innerHTML = learningHistoryItems
+          .map((item) => {
+            const badges = [
+              item.has_flow_score_report
+                ? `<span class="learning-material-box orange" title="기업리포트"></span>`
+                : "",
+              item.has_consultation_report
+                ? `<span class="learning-material-box yellow" title="상담보고서"></span>`
+                : "",
+              item.has_internal_review
+                ? `<span class="learning-material-box green" title="심사보고서"></span>`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("");
+            return `
+              <a class="learning-history-item" href="./bizaipro_evaluation_result.html?case_id=${encodeURIComponent(item.id)}">
+                <div class="learning-history-main">
+                  <div class="learning-history-link">
+                    ${escapeHtml(item.label)}
+                  </div>
+                  <div class="learning-history-meta">
+                    <span>${escapeHtml(shared.formatEngineVersionLabel(item.engine_version || ""))}</span>
+                    <span>${escapeHtml(item.updated_at || "")}</span>
+                  </div>
+                </div>
+                <div class="learning-history-indicators">
+                  ${badges}
+                </div>
+              </a>
+            `;
+          })
+          .join("");
+
+        const remaining = Math.max(0, learningHistoryTotal - learningHistoryItems.length);
+        actions.hidden = remaining <= 0;
+        moreBtn.textContent = remaining > 10 ? `10개 더 보기 (${remaining}건 남음)` : `${remaining}개 더 보기`;
+      }
+
+      async function refreshLearningHistory(reset = false) {
+        if (reset) {
+          learningHistoryOffset = 0;
+          learningHistoryItems = [];
+        }
+
+        const payload = await shared.fetchLearningCases(learningHistoryOffset, reset ? 5 : 10);
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        learningHistoryTotal = payload.total ?? learningHistoryTotal ?? 0;
+
+        if (reset) {
+          learningHistoryItems = items;
+          learningHistoryOffset = items.length;
+        } else {
+          learningHistoryItems = learningHistoryItems.concat(items);
+          learningHistoryOffset += items.length;
+        }
+
+        renderLearningHistorySummary();
+        renderLearningHistoryList();
+      }
+
+      function renderHome(state, { fillInputs = false } = {}) {
+        renderDashboard(state);
+
+        document.getElementById("result-headline").textContent = `${state.companyName}은 ${state.currentProposalState} 상태입니다.`;
+        document.getElementById("result-summary").textContent = state.overviewSummary;
+        document.getElementById("result-priority").textContent = `${state.proposalPriority} / ${state.proposalPriorityState}`;
+        document.getElementById("result-financial").textContent = state.financialFilterSignal;
+        document.getElementById("result-limit").textContent = state.estimatedLimitValue;
+        document.getElementById("result-margin").textContent = state.estimatedMarginValue;
+
+        if (fillInputs) {
+          fillHomeInputs(state);
+        }
+        setMode(state.mode || "learning");
+      }
+
+      function clearLearningInputs() {
+        const byId = (id) => document.getElementById(id);
+        ["learning-consulting-link", "learning-internal-link", "learning-extra-info"].forEach((id) => {
+          const el = byId(id);
+          if (el) el.value = "";
+        });
+        ["learning-flowscore-file", "learning-consulting-file"].forEach((id) => {
+          const el = byId(id);
+          if (el) el.value = "";
+        });
+      }
+
+      function clearExhibitionInputs() {
+        const byId = (id) => document.getElementById(id);
+        [
+          "exhibition-info-url",
+          "exhibition-website-url",
+          "exhibition-name",
+          "exhibition-year",
+          "exhibition-company-name",
+          "exhibition-industry-item",
+          "exhibition-contact-name",
+          "exhibition-extra-info",
+        ].forEach((id) => {
+          const el = byId(id);
+          if (el) el.value = "";
+        });
+        ["exhibition-company-report", "exhibition-flowscore-file"].forEach((id) => {
+          const el = byId(id);
+          if (el) el.value = "";
+        });
+        const status = byId("exhibition-autofill-status");
+        if (status) status.textContent = "";
+      }
+
+      function bindHomeEvents() {
+        const learningRadio = document.getElementById("mode-learning-radio");
+        const exhibitionRadio = document.getElementById("mode-exhibition-radio");
+        if (learningRadio) {
+          learningRadio.addEventListener("change", () => {
+            if (learningRadio.checked) setMode("learning");
+          });
+        }
+        if (exhibitionRadio) {
+          exhibitionRadio.addEventListener("change", () => {
+            if (exhibitionRadio.checked) setMode("exhibition");
+          });
+        }
+
+        const syncField = (id, key) => {
+          const target = document.getElementById(id);
+          if (!target) return;
+          target.addEventListener("change", () => {
+            const state = shared.getStoredState();
+            state[key] = target.value.trim();
+            shared.saveState(state);
+            renderHome(shared.getStoredState());
+          });
+        };
+
+        syncField("learning-internal-link", "internalReviewUrl");
+        syncField("learning-consulting-link", "consultingReportUrl");
+        syncField("learning-extra-info", "learningExtraInfo");
+        syncField("exhibition-info-url", "exhibitionInfoUrl");
+        syncField("exhibition-website-url", "website");
+        syncField("exhibition-name", "exhibitionName");
+        syncField("exhibition-year", "exhibitionYear");
+        syncField("exhibition-company-name", "companyName");
+        syncField("exhibition-industry-item", "industryItem");
+        syncField("exhibition-contact-name", "representativeName");
+        syncField("exhibition-extra-info", "exhibitionExtraInfo");
+
+        document.getElementById("exhibition-autofill-btn").addEventListener("click", async () => {
+          const exhibitionInfoUrl = document.getElementById("exhibition-info-url").value.trim();
+          const websiteUrl = document.getElementById("exhibition-website-url").value.trim();
+          const reportFile = document.getElementById("exhibition-company-report").files?.[0];
+          const status = document.getElementById("exhibition-autofill-status");
+
+          if (status) status.textContent = "자동 추출 중입니다...";
+          try {
+            const { state, extracted } = await shared.extractExhibitionContext({
+              exhibitionInfoUrl,
+              websiteUrl,
+              reportFile,
+            });
+            if (status) {
+              status.textContent = `${extracted.company_name || state.companyName} / ${extracted.exhibition_name || state.exhibitionName} 자동 입력 완료`;
+            }
+            renderHome(state, { fillInputs: true });
+          } catch (error) {
+            if (status) {
+              status.textContent = error.message || "자동 입력에 실패했습니다.";
+            } else {
+              window.alert(error.message || "자동 입력에 실패했습니다.");
+            }
+          }
+        });
+
+        function showSaveFeedback(id, message, isError = false) {
+          const target = document.getElementById(id);
+          if (!target) return;
+          target.textContent = message;
+          target.classList.add("show");
+          target.classList.toggle("error", isError);
+          window.setTimeout(() => {
+            target.classList.remove("show");
+            target.classList.remove("error");
+          }, 2600);
+        }
+
+        document.getElementById("learning-save-btn").addEventListener("click", async () => {
+          const processing = createProcessingSession("learning", [
+            ["engine", "학습시킬 엔진"],
+            ["flowscore", "플로우스코어 리포트"],
+            ["consultingLink", "상담리포트 노션 링크"],
+            ["consultingFile", "상담보고서 파일"],
+            ["internalLink", "내부심사보고서 노션 링크"],
+            ["extraInfo", "추가 정보"],
+            ["evaluation", "평가엔진 반영"],
+            ["save", "결과 저장"],
+          ]);
+          try {
+            processing.start("입력값 확인 중", 0);
+            let state = shared.resetForLearningMode(shared.getStoredState());
+            state.consultingReportUrl = document.getElementById("learning-consulting-link").value.trim();
+            state.internalReviewUrl = document.getElementById("learning-internal-link").value.trim();
+            state.learningExtraInfo = document.getElementById("learning-extra-info").value.trim();
+
+            const flowScoreFile = document.getElementById("learning-flowscore-file").files?.[0];
+            const consultingFile = document.getElementById("learning-consulting-file").files?.[0];
+            const selectedEngineLabel = document.getElementById("training-engine-select")?.selectedOptions?.[0]?.textContent || "기본 엔진";
+
+            processing.update("engine", "done", `${selectedEngineLabel} 선택 완료`);
+            processing.update("flowscore", flowScoreFile ? "running" : "skipped", flowScoreFile ? `${flowScoreFile.name} 파일명 확인 중` : "업로드된 파일이 없습니다.");
+            processing.update("consultingLink", state.consultingReportUrl ? "running" : "skipped", state.consultingReportUrl ? "노션 링크 확인 중" : "입력된 링크가 없습니다.");
+            processing.update("consultingFile", consultingFile ? "running" : "skipped", consultingFile ? `${consultingFile.name} 파일명 확인 중` : "업로드된 파일이 없습니다.");
+            processing.update("internalLink", state.internalReviewUrl ? "running" : "skipped", state.internalReviewUrl ? "노션 링크 확인 중" : "입력된 링크가 없습니다.");
+            processing.update("extraInfo", state.learningExtraInfo ? "running" : "skipped", state.learningExtraInfo ? "추가 메모 구조화 준비 중" : "입력된 추가 정보가 없습니다.");
+
+            processing.setStage("자료 읽는 중", 1);
+
+            if (flowScoreFile) {
+              const parsed = await shared.parseFlowscoreReport(flowScoreFile, state);
+              state = parsed.state;
+              state.learningFlowScoreFileName = flowScoreFile.name;
+              processing.update("flowscore", "done", `${flowScoreFile.name} 읽기 완료`);
+            }
+            if (state.consultingReportUrl) {
+              const consulting = await shared.parseConsultingReport(state.consultingReportUrl, state);
+              state = consulting.state;
+              processing.update("consultingLink", "done", "상담리포트 링크 읽기 완료");
+            }
+            if (consultingFile) {
+              const supporting = await shared.parseSupportingDocument(consultingFile, "상담보고서", state);
+              state = supporting.state;
+              state.learningConsultingFileName = consultingFile.name;
+              processing.update("consultingFile", "done", `${consultingFile.name} 읽기 완료`);
+            }
+            if (state.internalReviewUrl) {
+              const internal = await shared.parseInternalReview(state.internalReviewUrl, state);
+              state = internal.state;
+              processing.update("internalLink", "done", "심사보고서 링크 읽기 완료");
+            }
+
+            processing.setStage("구조화 중", 2);
+            if (state.learningExtraInfo) {
+              const extra = await shared.parseAdditionalInfoText(state.learningExtraInfo, state);
+              state = extra.state;
+              processing.update("extraInfo", "done", "추가 정보 구조화 완료");
+            }
+
+            processing.setStage("평가엔진 반영 중", 3);
+            processing.update("evaluation", "running", "업로드 실시간 평가(업데이트용) 실행 중");
+            const evaluated = await shared.evaluateLearningState(state);
+            state = evaluated.state;
+            dashboardSummary = evaluated.dashboardSummary || (await shared.fetchDashboardSummary());
+            processing.update("evaluation", "done", "평가엔진 반영 완료");
+
+            processing.setStage("결과 저장 중", 4);
+            processing.update("save", "running", "학습 결과와 대시보드 저장 중");
+            state.lastInputSavedAt = new Date().toISOString();
+            shared.saveState(state);
+            renderHome(shared.getStoredState());
+            await refreshLearningHistory(true);
+            clearLearningInputs();
+            processing.update("save", "done", "결과 저장 완료");
+            processing.complete("완료");
+            const savedAt = new Date(state.lastInputSavedAt).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            showSaveFeedback("learning-save-feedback", `학습 입력 반영 완료 · ${savedAt}`);
+          } catch (error) {
+            processing.fail(error.message || "입력 저장에 실패했습니다.");
+            showSaveFeedback("learning-save-feedback", error.message || "입력 저장에 실패했습니다.", true);
+          }
+        });
+
+        document.getElementById("exhibition-save-btn").addEventListener("click", async () => {
+          const processing = createProcessingSession("exhibition", [
+            ["exhibitionUrl", "전시회 정보 제공 URL"],
+            ["websiteUrl", "해당 기업 웹주소 URL"],
+            ["companyReport", "기업리포트(선택)"],
+            ["flowscore", "플로우스코어 입력"],
+            ["extraInfo", "추가 정보"],
+            ["evaluation", "평가엔진 반영"],
+            ["save", "결과 저장"],
+          ]);
+          try {
+            processing.start("입력값 확인 중", 0);
+            let state = shared.resetForExhibitionMode(shared.getStoredState());
+            const exhibitionInfoUrl = document.getElementById("exhibition-info-url").value.trim();
+            const websiteUrl = document.getElementById("exhibition-website-url").value.trim();
+            const companyReportFile = document.getElementById("exhibition-company-report").files?.[0];
+            const flowScoreFile = document.getElementById("exhibition-flowscore-file").files?.[0];
+            state.exhibitionExtraInfo = document.getElementById("exhibition-extra-info").value.trim();
+
+            processing.update("exhibitionUrl", exhibitionInfoUrl ? "running" : "skipped", exhibitionInfoUrl ? "전시회 URL 확인 중" : "입력된 URL이 없습니다.");
+            processing.update("websiteUrl", websiteUrl ? "running" : "skipped", websiteUrl ? "기업 URL 확인 중" : "입력된 URL이 없습니다.");
+            processing.update("companyReport", companyReportFile ? "running" : "skipped", companyReportFile ? `${companyReportFile.name} 파일명 확인 중` : "업로드된 기업리포트가 없습니다.");
+            processing.update("flowscore", flowScoreFile ? "running" : "skipped", flowScoreFile ? `${flowScoreFile.name} 파일명 확인 중` : "업로드된 플로우스코어가 없습니다.");
+            processing.update("extraInfo", state.exhibitionExtraInfo ? "running" : "skipped", state.exhibitionExtraInfo ? "추가 메모 구조화 준비 중" : "입력된 추가 정보가 없습니다.");
+
+            processing.setStage("자료 읽는 중", 1);
+            if (exhibitionInfoUrl || websiteUrl) {
+              const extracted = await shared.extractExhibitionContext({
+                exhibitionInfoUrl,
+                websiteUrl,
+                reportFile: companyReportFile,
+              });
+              state = extracted.state;
+              if (exhibitionInfoUrl) processing.update("exhibitionUrl", "done", "전시회 URL 읽기 완료");
+              if (websiteUrl) processing.update("websiteUrl", "done", "기업 URL 읽기 완료");
+              if (companyReportFile) processing.update("companyReport", "done", `${companyReportFile.name} 보조 읽기 완료`);
+            }
+
+            if (flowScoreFile) {
+              const parsed = await shared.parseFlowscoreReport(flowScoreFile, state);
+              state = parsed.state;
+              state.exhibitionFlowScoreFileName = flowScoreFile.name;
+              processing.update("flowscore", "done", `${flowScoreFile.name} 읽기 완료`);
+            }
+
+            processing.setStage("구조화 중", 2);
+            if (state.exhibitionExtraInfo) {
+              const extra = await shared.parseAdditionalInfoText(state.exhibitionExtraInfo, state);
+              state = extra.state;
+              processing.update("extraInfo", "done", "추가 정보 구조화 완료");
+            }
+
+            processing.setStage("평가엔진 반영 중", 3);
+            processing.update("evaluation", "running", "전시회 결과 상태 반영 중");
+            state.lastInputSavedAt = new Date().toISOString();
+            shared.saveState(state);
+            processing.update("evaluation", "done", "결과 상태 반영 완료");
+
+            processing.setStage("결과 저장 중", 4);
+            processing.update("save", "running", "전시회 결과 저장 중");
+            renderHome(shared.getStoredState());
+            await refreshLearningHistory(true);
+            clearExhibitionInputs();
+            processing.update("save", "done", "결과 저장 완료");
+            processing.complete("완료");
+            const savedAt = new Date(state.lastInputSavedAt).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            showSaveFeedback("exhibition-save-feedback", `전시회 입력 반영 완료 · ${savedAt}`);
+          } catch (error) {
+            processing.fail(error.message || "입력 저장에 실패했습니다.");
+            showSaveFeedback("exhibition-save-feedback", error.message || "입력 저장에 실패했습니다.", true);
+          }
+        });
+
+        const moreBtn = document.getElementById("learning-history-more-btn");
+        if (moreBtn) {
+          moreBtn.addEventListener("click", async () => {
+            await refreshLearningHistory(false);
+          });
+        }
+      }
+
+      shared.fetchDashboardSummary().then((payload) => {
+        dashboardSummary = payload;
+        renderHome(shared.getStoredState());
+      });
+      renderHome(shared.getStoredState());
+      refreshLearningHistory(true);
+      bindHomeEvents();
+      shared.setupEngineControls({
+        selectId: "training-engine-select",
+        displayId: "dashboard-engine-version",
+        onUpdate: (state) => renderHome(state),
+      });
+    </script>
+  </body>
+</html>

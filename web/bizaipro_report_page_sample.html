@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro리포트 생성 페이지 샘플</title>
+    <style>
+      :root {
+        --bg: #f5f5f7;
+        --panel: rgba(255, 255, 255, 0.88);
+        --panel-strong: #ffffff;
+        --line: rgba(15, 23, 42, 0.08);
+        --text: #111827;
+        --muted: #6b7280;
+        --blue: #0a84ff;
+        --blue-soft: rgba(10, 132, 255, 0.12);
+        --green: #14804a;
+        --green-soft: rgba(20, 128, 74, 0.12);
+        --orange: #b45309;
+        --orange-soft: rgba(180, 83, 9, 0.14);
+        --red: #b42318;
+        --red-soft: rgba(180, 35, 24, 0.1);
+        --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Apple SD Gothic Neo", "SF Pro KR", "Malgun Gothic", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(10, 132, 255, 0.12), transparent 32%),
+          radial-gradient(circle at top right, rgba(20, 128, 74, 0.08), transparent 28%),
+          var(--bg);
+        color: var(--text);
+      }
+
+      .page {
+        max-width: 1520px;
+        margin: 0 auto;
+        padding: 28px 24px 40px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.06);
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .subcopy {
+        max-width: 700px;
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .status-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        min-width: 420px;
+      }
+
+      .status-card {
+        background: var(--panel);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+      }
+
+      .status-card .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .status-card .value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr) 340px;
+        gap: 24px;
+      }
+
+      .panel {
+        background: var(--panel);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .panel h2,
+      .panel h3 {
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+
+      .panel h2 {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+
+      .panel h3 {
+        font-size: 17px;
+        margin-bottom: 12px;
+      }
+
+      .panel + .panel {
+        margin-top: 18px;
+      }
+
+      .helper {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 0 0 14px;
+      }
+
+      .field {
+        margin-bottom: 14px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .field input,
+      .field textarea,
+      .field select {
+        width: 100%;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 14px 16px;
+        font: inherit;
+        color: var(--text);
+      }
+
+      .field textarea {
+        min-height: 108px;
+        resize: vertical;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .dropzone {
+        border: 1.5px dashed rgba(10, 132, 255, 0.35);
+        border-radius: 18px;
+        padding: 16px;
+        background: rgba(10, 132, 255, 0.05);
+      }
+
+      .subsection {
+        margin-top: 12px;
+        padding: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.68);
+      }
+
+      .subsection-title {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        color: var(--text);
+      }
+
+      .inline-note {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+        margin-top: 8px;
+      }
+
+      .file-chip-list,
+      .chip-row,
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .chip {
+        background: rgba(17, 24, 39, 0.06);
+        color: var(--text);
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.orange {
+        background: var(--orange-soft);
+        color: var(--orange);
+      }
+
+      .badge.red {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .hero-card {
+        background: linear-gradient(135deg, rgba(10, 132, 255, 0.13), rgba(255, 255, 255, 0.96));
+        border: 1px solid rgba(10, 132, 255, 0.12);
+      }
+
+      .hero-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .hero-title {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .hero-title h2 {
+        font-size: clamp(16px, 1.35vw, 18px);
+        line-height: 1.35;
+      }
+
+      .hero-note {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 18px;
+        padding: 14px 16px;
+        color: var(--muted);
+        line-height: 1.55;
+        max-width: 360px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+        min-height: 168px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .metric .k {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .metric .v {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        word-break: keep-all;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric .v.amount {
+        font-size: clamp(12px, 1.15vw, 18px);
+        letter-spacing: -0.045em;
+        white-space: nowrap;
+      }
+
+      .metric .v.emphasis {
+        font-size: clamp(16px, 1.45vw, 24px);
+        white-space: nowrap;
+      }
+
+      .metric .v .num {
+        display: inline;
+      }
+
+      .metric .v .unit {
+        display: inline;
+        margin-top: 0;
+      }
+
+      .metric .meta {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .metric .meta strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .report-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 18px;
+      }
+
+      .report-card {
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+      }
+
+      .report-card h3 {
+        margin-bottom: 10px;
+      }
+
+      .bullet-list,
+      .formula-list,
+      .timeline-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .bullet-list li,
+      .formula-list li,
+      .timeline-list li {
+        margin-bottom: 9px;
+        line-height: 1.6;
+      }
+
+      .score-table {
+        display: grid;
+        gap: 12px;
+      }
+
+      .score-row {
+        display: grid;
+        grid-template-columns: 1.2fr 0.7fr 0.8fr;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(248, 250, 252, 0.85);
+      }
+
+      .score-row strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .score-row .grade {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .score-pill {
+        justify-self: end;
+        min-width: 86px;
+        text-align: center;
+        padding: 10px 12px;
+        border-radius: 999px;
+        font-weight: 800;
+      }
+
+      .score-pill.cplus {
+        background: var(--orange-soft);
+        color: var(--orange);
+      }
+
+      .score-pill.c {
+        background: rgba(180, 35, 24, 0.08);
+        color: #8a2e16;
+      }
+
+      .report-preview {
+        background: #fff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 24px;
+        padding: 28px;
+      }
+
+      .report-preview section + section {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .report-preview h4 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+
+      .report-preview p {
+        margin: 0;
+        line-height: 1.72;
+      }
+
+      .mini-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .mini-card {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      .mini-card .mini-label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      .mini-card .mini-value {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .weight-table {
+        display: grid;
+        gap: 10px;
+      }
+
+      .weight-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(248, 250, 252, 0.9);
+      }
+
+      .weight-bar {
+        width: 110px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .weight-bar span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        display: block;
+        background: linear-gradient(90deg, #0a84ff, #5ac8fa);
+        border-radius: inherit;
+      }
+
+      .check-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+      }
+
+      .check-list li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(248, 250, 252, 0.86);
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 1320px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .status-strip,
+        .metric-grid,
+        .report-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">BizAiPro리포트 생성 페이지 샘플</div>
+          <h1>BizAiPro 평가엔진 학습하기</h1>
+        </div>
+        <div class="status-strip">
+          <div class="status-card">
+            <div class="label">현재 엔진</div>
+            <div class="value">BizAiPro v.1.16.01</div>
+          </div>
+          <div class="status-card">
+            <div class="label">이번 주 학습</div>
+            <div class="value">10 / 10</div>
+          </div>
+          <div class="status-card">
+            <div class="label">업데이트 상태</div>
+            <div class="value">생성됨</div>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell">
+        <aside>
+          <section class="panel">
+            <h2>기본 자료 넣기</h2>
+            <p class="helper">처음 보는 사람도 바로 알 수 있게, 꼭 필요한 자료 이름만 먼저 보여줍니다.</p>
+
+            <div class="field">
+              <label>플로우스코어 리포트</label>
+              <div class="dropzone">
+                <div class="file-chip-list">
+                  <span class="chip">에이튜드_기업리포트.pdf</span>
+                  <span class="badge green">완료</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>상담보고서</label>
+              <div class="dropzone">
+                <div class="file-chip-list">
+                  <span class="chip">OEM 상담 노트</span>
+                  <span class="badge green">완료</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>추가 정보</label>
+              <div class="subsection">
+                <span class="subsection-title">1. 파일/이미지 업로드</span>
+                <div class="dropzone">
+                  <div class="file-chip-list">
+                    <span class="chip">플랫폼 정산내역.pdf</span>
+                    <span class="chip">공급처 이미지.png</span>
+                  </div>
+                  <div class="inline-note">PDF, DOCX, XLSX, PNG, JPG 파일을 추가할 수 있습니다.</div>
+                </div>
+              </div>
+
+              <div class="subsection">
+                <span class="subsection-title">2. 링크 주소 입력</span>
+                <input type="text" value="https://example.com/coupang-settlement-note" />
+                <div class="inline-note">웹 주소, 노션 링크, 드라이브 링크를 넣을 수 있습니다.</div>
+              </div>
+
+              <div class="subsection">
+                <span class="subsection-title">3. 메모 입력</span>
+                <textarea>- 쿠팡/G마켓/하프클럽 정산 구조 메모
+- 행사 SKU 중심 선매입 필요
+- 동대문 OEM 공급처 리스트 추가 예정</textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>내부 참고 자료</h2>
+            <div class="field">
+              <label>내부심사리포트 노션 링크</label>
+              <input type="text" value="https://www.notion.so/example/internal-review-atude" />
+            </div>
+            <div class="badge-row">
+              <span class="badge blue">링크 확인됨</span>
+              <span class="badge green">학습 후보 포함</span>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>이번 건 처리 방식</h2>
+            <ul class="check-list">
+              <li><span>이 건을 학습 데이터로 저장</span><span class="badge green">예</span></li>
+              <li><span>제안서도 함께 생성</span><span class="badge green">예</span></li>
+              <li><span>이메일도 함께 생성</span><span class="badge green">예</span></li>
+              <li><span>업데이트 후보에 포함</span><span class="badge green">예</span></li>
+            </ul>
+          </section>
+        </aside>
+
+        <section class="stack">
+          <section class="panel hero-card">
+            <div class="hero-head">
+              <div class="hero-title">
+                <div class="badge orange">추가 확인 필요</div>
+                <h2>에이튜드 거래는 제안은 가능하지만, 보완 자료가 먼저 필요합니다</h2>
+              </div>
+              <div class="hero-note">
+                이 결과는 영업 참고용입니다. 지금 바로 거절할 건은 아니지만, 매출 회수 흐름과 결제기간
+                적합성을 더 확인한 뒤 조건부 제안으로 가는 것이 맞습니다.
+              </div>
+            </div>
+
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="k">예상 한도액</div>
+                <div class="v amount">
+                  <span class="num">117,753,000</span>
+                  <span class="unit">원</span>
+                </div>
+                <div class="meta">현재 자료 기준으로 제안 가능한 1회 거래 범위</div>
+              </div>
+              <div class="metric">
+                <div class="k">예상 마진율</div>
+                <div class="v emphasis">8.75%</div>
+                <div class="meta">현재 2개월 구조를 기준으로 본 영업 설명용 비율</div>
+              </div>
+              <div class="metric">
+                <div class="k">예상 마진액</div>
+                <div class="v amount">
+                  <span class="num">10,303,388</span>
+                  <span class="unit">원</span>
+                </div>
+                <div class="meta">117,753,000원 x 8.75% 기준</div>
+              </div>
+              <div class="metric">
+                <div class="k">결제기간</div>
+                <div class="v emphasis">2개월 적합</div>
+                <div class="meta">
+                  1개월 예상 마진율 <strong>5.75%</strong><br />
+                  3개월 예상 마진율 <strong>11.75%</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-grid">
+            <article class="panel">
+              <h2>기업과 거래 해석</h2>
+              <p class="helper">
+                점수만 보여주지 않고, 왜 이런 점수가 나왔는지와 영업적으로 어떻게 읽어야 하는지를 같이
+                설명합니다.
+              </p>
+              <div class="score-table">
+                <div class="score-row">
+                  <div>
+                    <strong>신청업체</strong>
+                    <div class="grade">C+ / 재무와 외부신호는 약하지만 운영력과 준법성은 중간 이상</div>
+                  </div>
+                  <div>62.62점</div>
+                  <div class="score-pill cplus">C+</div>
+                </div>
+                <div class="score-row">
+                  <div>
+                    <strong>매출처</strong>
+                    <div class="grade">C+ / 결제흐름은 괜찮지만 플랫폼 묶음 입력이라 외부 검증력은 약함</div>
+                  </div>
+                  <div>58.89점</div>
+                  <div class="score-pill cplus">C+</div>
+                </div>
+                <div class="score-row">
+                  <div>
+                    <strong>거래구조</strong>
+                    <div class="grade">C / 서류 구조는 설명되지만 결제기간과 회수 속도가 잘 맞지 않음</div>
+                  </div>
+                  <div>54.57점</div>
+                  <div class="score-pill c">C</div>
+                </div>
+                <div class="score-row">
+                  <div>
+                    <strong>통합 결과</strong>
+                    <div class="grade">C+ / 강하게 밀기보다 조건부 제안으로 접근하는 것이 적절</div>
+                  </div>
+                  <div>59.30점</div>
+                  <div class="score-pill cplus">C+</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <h2>점수와 등급 기준</h2>
+              <p class="helper">모든 점수는 100점 만점 기준입니다.</p>
+              <ul class="bullet-list">
+                <li><strong>A</strong>: 85~100 / 거래 가능성이 높고 적극 제안 가능한 구간</li>
+                <li><strong>B+</strong>: 75~84.99 / 전반적으로 양호하며 일반 확인 후 제안 가능한 구간</li>
+                <li><strong>B</strong>: 65~74.99 / 기본 제안은 가능하지만 조건 설명과 자료 확인이 필요한 구간</li>
+                <li><strong>C+</strong>: 55~64.99 / 조건부 제안은 가능하나 추가 확인이 필요한 구간</li>
+                <li><strong>C</strong>: 45~54.99 / 리스크가 커서 보수적 접근이 필요한 구간</li>
+                <li><strong>D</strong>: 0~44.99 / 현 단계에서는 제안이 어렵거나 비추천인 구간</li>
+              </ul>
+            </article>
+          </section>
+
+          <section class="panel">
+            <h2>연간 기대 효과</h2>
+            <p class="helper">
+              상단의 `추가 확인 필요` 판단과 겹치지 않도록, 여기서는 거래를 실제로 운영했을 때 기대할 수 있는
+              연간 효과를 보여줍니다.
+            </p>
+            <ul class="bullet-list">
+              <li>결제유예 2개월 기준으로 보면 연간 <strong>6회</strong>까지 플로우페이 진행이 가능한 구조로 해석합니다.</li>
+              <li>예상 한도액과 마진액을 더한 <strong>(117,753,000원 + 10,303,388원) x 6회 = 연간 매출 증가액 768,338,328원</strong> 수준으로 볼 수 있습니다.</li>
+              <li>추정 영업이익률 <strong>4.94%</strong>를 적용하면 연간 영업이익 증가액은 <strong>37,955,913원</strong> 수준으로 해석할 수 있습니다.</li>
+              <li>참고로 결제유예 1개월은 연간 <strong>12회</strong>, 3개월은 연간 <strong>4회</strong> 진행 구조로 비교할 수 있습니다.</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>먼저 확인할 점</h2>
+            <ul class="bullet-list">
+              <li>전년동기 대비 월매출 30% 이상 급락 신호가 있습니다.</li>
+              <li>현금전환주기 352일이 결제기간 2개월보다 길어 거래 구조 보완이 필요합니다.</li>
+              <li>DART 직접 매칭은 약하고, 현재는 ECOS 기반 외부 보강만 일부 반영된 상태입니다.</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>맥킨지 스타일 BizAiPro리포트 미리보기</h2>
+            <div class="report-preview">
+              <section>
+                <h4>Executive Summary</h4>
+                <p>
+                  에이튜드 건은 현재 자료 기준으로 제안 자체는 가능하지만, 매출 회수 구조를 더 확인한 뒤
+                  조건부 제안으로 접근하는 것이 적절합니다. 특히 OEM 선매입 필요성은 분명하나, 회수 주기와
+                  결제기간의 간극이 커서 구조 보완이 선행되어야 합니다.
+                </p>
+              </section>
+              <section>
+                <h4>Client Situation</h4>
+                <p>
+                  신청업체는 동대문 OEM 제조 공급처에 선지급이 필요한 구조이며, 매출은 쿠팡, G마켓,
+                  하프클럽 등 이커머스 플랫폼 정산을 통해 회수됩니다. 운영력과 사업 정합성은 나쁘지 않지만,
+                  현금흐름과 외부 신호는 보수적으로 해석됩니다.
+                </p>
+              </section>
+              <section>
+                <h4>Opportunity Assessment</h4>
+                <p>
+                  예상 거래 한도는 117,753,000원이며 예상 마진율은 8.75%입니다. 다만 본 수치는 확정 심사
+                  결과가 아니라 세일즈 설명용 추정치이며, 추가 증빙이 들어오면 조건은 조정될 수 있습니다.
+                </p>
+              </section>
+              <section>
+                <h4>Risks and Checks</h4>
+                <p>
+                  가장 큰 약점은 거래구조 점수 54.57점입니다. 결제기간 적합성이 낮아, 회전 SKU 중심으로
+                  범위를 줄이거나 3개월 구조 재설계 같은 보완안이 필요합니다.
+                </p>
+              </section>
+              <section>
+                <h4>Next Actions</h4>
+                <p>
+                  최근 6개월 플랫폼 정산내역, 법인 통장 흐름, 상위 OEM 거래처 리스트를 먼저 받아 다시
+                  계산한 뒤 조건부 제안서와 후속 미팅 메일로 연결하는 흐름이 적절합니다.
+                </p>
+              </section>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>점수 계산 방식</h2>
+            <p class="helper">
+              사용자가 “왜 59.30점인가요?”를 바로 이해할 수 있게 계산식을 그대로 보여줍니다.
+            </p>
+            <ul class="formula-list">
+              <li>신청업체 점수 = financial 51.20 x 28% + business 67.60 x 20% + management 70.90 x 22% + compliance 74.68 x 20% + external 42.25 x 10% = <strong>62.62</strong></li>
+              <li>매출처 점수 = financial 54.90 x 32% + business 60.00 x 18% + payment 67.70 x 35% + external 45.50 x 15% = <strong>58.89</strong></li>
+              <li>거래구조 점수 = structure 64.96 x 45% + tenor 44.00 x 35% + macro 49.70 x 20% = <strong>54.57</strong></li>
+              <li>통합 점수 = 신청업체 62.62 x 40% + 매출처 58.89 x 35% + 거래구조 54.57 x 25% = <strong>59.30</strong></li>
+            </ul>
+          </section>
+        </section>
+
+        <aside class="stack">
+          <section class="panel">
+            <h2>이번 건 학습 상태</h2>
+            <div class="mini-grid">
+              <div class="mini-card">
+                <div class="mini-label">학습 적격 여부</div>
+                <div class="mini-value">적격</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-label">이번 건 가중치</div>
+                <div class="mini-value">0.95</div>
+              </div>
+            </div>
+            <ul class="check-list" style="margin-top: 14px">
+              <li><span>플로우스코어 리포트</span><span class="badge green">0.35</span></li>
+              <li><span>상담보고서</span><span class="badge green">0.35</span></li>
+              <li><span>내부심사리포트 링크</span><span class="badge green">0.15</span></li>
+              <li><span>추가 자료 2건</span><span class="badge green">0.10</span></li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>업데이트 생성 여부</h2>
+            <p class="helper">
+              10건 적격 학습과 누적 가중치 7.5 이상이 되면 BizAiPro가 새 버전으로 올라갑니다.
+            </p>
+            <div class="badge-row" style="margin-bottom: 14px">
+              <span class="badge green">이번 주 업데이트 생성됨</span>
+              <span class="badge blue">비교 리포트 생성 완료</span>
+            </div>
+            <ul class="timeline-list">
+              <li>이전 버전: <strong>v.1.0.00</strong></li>
+              <li>새 버전: <strong>v.1.16.01</strong></li>
+              <li>학습 적격 건수: <strong>10건</strong></li>
+              <li>누적 학습 가중치: <strong>9.5</strong></li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>이번 업데이트에 반영된 가중치</h2>
+            <div class="weight-table">
+              <div class="weight-row">
+                <span>신청업체</span>
+                <div class="weight-bar"><span style="width: 39.85%"></span></div>
+                <strong>39.85%</strong>
+              </div>
+              <div class="weight-row">
+                <span>매출처</span>
+                <div class="weight-bar"><span style="width: 34.87%"></span></div>
+                <strong>34.87%</strong>
+              </div>
+              <div class="weight-row">
+                <span>거래구조</span>
+                <div class="weight-bar"><span style="width: 25.28%"></span></div>
+                <strong>25.28%</strong>
+              </div>
+            </div>
+            <p class="footer-note">
+              거래구조 평균 점수가 가장 약했기 때문에, 업데이트 후에는 거래구조 가중치가 조금 더 보수적으로
+              반영되도록 조정됩니다.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>최근 버전 변화 요약</h2>
+            <ul class="bullet-list">
+              <li>업데이트 전후 비교 리포트 자동 생성</li>
+              <li>학습 건마다 가중치 저장</li>
+              <li>점수 계산식과 등급 의미를 결과 화면에 직접 노출</li>
+              <li>제안서와 이메일 생성 전, 영업용 해석 문장을 먼저 보여주도록 구성</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>기억할 계산 기준</h2>
+            <ul class="bullet-list">
+              <li><strong>한도액 + 마진액</strong>이 실제 플로우페이를 통해 매입하는 매입금 기준입니다.</li>
+              <li>연간 매출 증가액은 <strong>(예상 한도액 + 마진액) x 연간 가능 횟수</strong>로 계산합니다.</li>
+              <li>연간 영업이익 증가액은 <strong>연간 매출 증가액 x 추정 영업이익률</strong>로 계산합니다.</li>
+            </ul>
+            <div class="mini-grid" style="margin-top: 14px;">
+              <div class="mini-card">
+                <div class="mini-label">결제유예 1개월</div>
+                <div class="mini-value">연 12회</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-label">결제유예 2개월</div>
+                <div class="mini-value">연 6회</div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-label">결제유예 3개월</div>
+                <div class="mini-value">연 4회</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BizAiPro 이메일 생성</title>
+    <link rel="stylesheet" href="./bizaipro_shared.css" />
+  </head>
+  <body class="email-page">
+    <div class="page-shell">
+      <div id="top-nav" class="top-nav"></div>
+
+      <header class="hero-grid">
+        <section class="hero-main">
+          <div class="brand-pill" id="email-hero-pill"></div>
+          <h1 id="email-hero-title"></h1>
+          <p class="subcopy" id="email-hero-subcopy"></p>
+        </section>
+        <aside class="hero-side">
+          <div class="status-card">
+            <div class="label">현재 제안 상태</div>
+            <div class="value" id="hero-current-status"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">예상 한도</div>
+            <div class="value" id="hero-limit"></div>
+          </div>
+          <div class="status-card">
+            <div class="label">예상 마진율</div>
+            <div class="value" id="hero-margin"></div>
+          </div>
+        </aside>
+      </header>
+
+      <div class="layout-2col">
+        <aside class="stack">
+          <section class="panel">
+            <h2>자동 입력 기본 정보</h2>
+            <div class="field">
+              <label>제안할 업체명</label>
+              <div class="fake-input" id="field-company-name"></div>
+            </div>
+            <div class="field">
+              <label>사업자번호</label>
+              <div class="fake-input" id="field-business-number"></div>
+            </div>
+            <div class="field">
+              <label>대표자명</label>
+              <div class="fake-input" id="field-representative"></div>
+            </div>
+            <div class="field">
+              <label>영업담당자 선택</label>
+              <select id="salesperson-select"></select>
+            </div>
+            <div class="field">
+              <label>이메일 제목 선택</label>
+              <select id="email-subject-select"></select>
+            </div>
+            <div class="action-row">
+              <button class="btn gray" id="copy-email-btn">복사</button>
+            </div>
+          </section>
+        </aside>
+
+        <main class="stack">
+          <section class="panel">
+            <h2>이메일 샘플</h2>
+            <p class="helper">제안서 중요 내용 중 평가 결과, 한도액, 마진율, 연간 기대 효과를 우선 반영한 문안입니다.</p>
+            <div class="doc-card">
+              <section>
+                <h4>메일 제목</h4>
+                <p id="email-subject-preview"></p>
+              </section>
+              <section>
+                <h4>메일 본문</h4>
+                <div class="email-box">
+                  <p id="email-body-preview"></p>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./bizaipro_shared.js"></script>
+    <script>
+      const shared = window.BizAiProShared;
+      shared.renderTopNav("email");
+
+      function populateSelects() {
+        const state = shared.getStoredState();
+        const salespersonSelect = document.getElementById("salesperson-select");
+        const subjectSelect = document.getElementById("email-subject-select");
+
+        salespersonSelect.innerHTML = shared.salespeople
+          .map(
+            (person, index) =>
+              `<option value="${index}">${person.title} ${person.name} (${person.phone})</option>`
+          )
+          .join("");
+
+        subjectSelect.innerHTML = shared.emailTemplates
+          .map((template, index) => `<option value="${index}">${shared.renderEmailSubject(state, index)}</option>`)
+          .join("");
+      }
+
+      function renderEmail() {
+        const state = shared.getStoredState();
+        const salesperson = shared.salespeople[Number(document.getElementById("salesperson-select").value || 0)];
+        const templateIndex = Number(document.getElementById("email-subject-select").value || 0);
+        const subject = shared.renderEmailSubject(state, templateIndex);
+        const body = shared.buildEmailBody(state, salesperson, templateIndex).replace(/\n/g, "<br />");
+
+        document.getElementById("email-hero-pill").textContent = state.emailHeroPill;
+        document.getElementById("email-hero-title").textContent = state.emailHeroTitle;
+        document.getElementById("email-hero-subcopy").textContent = state.emailHeroSubcopy;
+        document.getElementById("hero-current-status").textContent = state.currentProposalState;
+        document.getElementById("hero-limit").textContent = state.estimatedLimitValue;
+        document.getElementById("hero-margin").textContent = state.estimatedMarginValue;
+
+        document.getElementById("field-company-name").textContent = state.companyName;
+        document.getElementById("field-business-number").textContent = state.businessNumber;
+        document.getElementById("field-representative").textContent = state.representativeName;
+        document.getElementById("email-subject-preview").textContent = subject;
+        document.getElementById("email-body-preview").innerHTML = body;
+      }
+
+      populateSelects();
+      renderEmail();
+
+      document.getElementById("salesperson-select").addEventListener("change", renderEmail);
+      document.getElementById("email-subject-select").addEventListener("change", renderEmail);
+
+      document.getElementById("copy-email-btn").addEventListener("click", async () => {
+        const state = shared.getStoredState();
+        const salesperson = shared.salespeople[Number(document.getElementById("salesperson-select").value || 0)];
+        const templateIndex = Number(document.getElementById("email-subject-select").value || 0);
+        const subject = shared.renderEmailSubject(state, templateIndex);
+        await shared.copyText(`${subject}\n\n${shared.buildEmailBody(state, salesperson, templateIndex)}`);
+        window.alert("이메일 내용을 복사했습니다.");
+      });
+    </script>
+  </body>
+</html>

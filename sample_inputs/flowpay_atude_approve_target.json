@@ -1,0 +1,150 @@
+{
+  "analysis_type": "flowpay_underwriting",
+  "company_name": "에이튜드 FlowPay 승인목표 샘플",
+  "requested_tenor_months": 3,
+  "requested_purchase_amount_krw": 100000000,
+  "industry_profile": "manufacturing",
+  "screening": {
+    "business_years": 10.3,
+    "startup_fast_track_supported": false,
+    "complete_capital_impairment": false,
+    "tax_arrears": false,
+    "credit_grade": "CCC",
+    "recent_legal_action_within_years": 9,
+    "industry_tag": "manufacturing"
+  },
+  "financials": {
+    "annual_sales": 4005200000,
+    "operating_profit": 197978000,
+    "net_profit": 60424000,
+    "operating_margin_pct": 4.94,
+    "ebitda_interest_coverage": 1.34,
+    "cash_conversion_cycle_days": 95
+  },
+  "ews_inputs": {
+    "representative_credit_drop_notches": 0,
+    "yoy_sales_drop_pct": 20,
+    "short_term_debt_growth_pct": 18
+  },
+  "api_enrichment": {
+    "enabled": true,
+    "applicant": {
+      "dart_corp_name": "에이튜드",
+      "ecos_industry_code": "C1400"
+    },
+    "buyer": {
+      "ecos_industry_code": "C1400"
+    }
+  },
+  "proposal_context": {
+    "business_summary": "에이튜드는 여성복 이커머스 브랜드 운영력과 판매 채널을 갖추고 있지만, OEM 선매입 자금 부족으로 물량 확보와 배송 경쟁력에서 기회손실이 발생하는 상황으로 보입니다.",
+    "sales_goal": "추가 자료 확보를 전제로 고객이 바로 이해할 수 있는 조건부 제안안을 만드는 것입니다.",
+    "use_of_funds": "행사 및 회전 SKU 중심의 OEM 생산비 선집행",
+    "purchase_supplier_name": "동대문 OEM 제조 공급처",
+    "sales_destination_name": "쿠팡/G마켓/하프클럽 등 이커머스 플랫폼"
+  },
+  "applicant": {
+    "company_name": "에이튜드",
+    "scores": {
+      "financial": {
+        "annual_sales_scale": 68,
+        "revenue_stability": 50,
+        "operating_profitability": 58,
+        "net_profitability": 50,
+        "liquidity_cashflow": 44,
+        "leverage": 54
+      },
+      "business": {
+        "onsite_business_alignment": 84,
+        "registry_business_alignment": 80,
+        "industry_condition": 44,
+        "business_model_resilience": 66,
+        "external_funding_validation": 54,
+        "customer_diversification": 80
+      },
+      "management": {
+        "representative_execution": 72,
+        "actual_manager_match": 86,
+        "shareholder_structure": 76,
+        "representative_history": 64,
+        "employee_history": 60,
+        "governance_control": 58
+      },
+      "compliance": {
+        "national_tax_compliance": 68,
+        "local_tax_compliance": 68,
+        "four_insurance_compliance": 72,
+        "trade_delinquency": 80,
+        "loan_delinquency": 76,
+        "legal_dispute_status": 82
+      },
+      "external": {
+        "corporate_credit_grade_signal": 40,
+        "dart_signal": 45,
+        "ecos_signal": 42,
+        "cretop_signal": 44,
+        "public_reputation": 70,
+        "employee_reputation": 56
+      }
+    }
+  },
+  "buyer": {
+    "company_name": "쿠팡/G마켓/하프클럽 등 이커머스 플랫폼",
+    "scores": {
+      "financial": {
+        "buyer_revenue_scale": 56,
+        "buyer_profitability": 58,
+        "buyer_liquidity": 54,
+        "buyer_leverage": 52,
+        "buyer_cashflow": 55
+      },
+      "business": {
+        "buyer_industry_condition": 50,
+        "buyer_business_stability": 62,
+        "buyer_market_position": 64,
+        "buyer_reputation": 60,
+        "buyer_registry_alignment": 68
+      },
+      "payment": {
+        "payment_history": 70,
+        "settlement_stability": 63,
+        "invoice_acceptance_clarity": 74,
+        "dispute_setoff_risk": 60,
+        "concentration_risk": 82,
+        "delay_pattern": 58
+      },
+      "external": {
+        "buyer_credit_grade_signal": 52,
+        "buyer_dart_signal": 30,
+        "buyer_ecos_signal": 42,
+        "buyer_cretop_signal": 48,
+        "buyer_funding_signal": 44
+      }
+    }
+  },
+  "transaction": {
+    "scores": {
+      "structure": {
+        "order_authenticity": 74,
+        "contract_enforceability": 70,
+        "delivery_verification": 66,
+        "invoice_proof": 78,
+        "recourse_strength": 58,
+        "fraud_control_strength": 68
+      },
+      "tenor": {
+        "cash_conversion_cycle_fit": 52,
+        "requested_tenor_fit": 64,
+        "seller_survival_buffer": 56,
+        "buyer_survival_buffer": 62,
+        "emergency_liquidity_backstop": 60
+      },
+      "macro": {
+        "industry_outlook": 48,
+        "macro_sensitivity": 45,
+        "commodity_volatility": 52,
+        "fx_or_policy_risk": 56
+      }
+    }
+  }
+}

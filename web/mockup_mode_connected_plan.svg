@@ -1,0 +1,25 @@
+<svg width="1440" height="420" viewBox="0 0 1440 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="420" fill="#F5F7FB"/>
+
+  <rect x="28" y="34" width="1384" height="120" rx="28" fill="white" stroke="#E5EAF2" stroke-width="2"/>
+
+  <rect x="52" y="67" width="402" height="88" rx="34" fill="#9CA3AF" stroke="#6B7280" stroke-width="4"/>
+  <text x="253" y="121" text-anchor="middle" fill="white" font-family="Apple SD Gothic Neo, sans-serif" font-size="34" font-weight="800">학습 모드</text>
+
+  <rect x="482" y="67" width="402" height="88" rx="34" fill="#ECEFF4" stroke="#D7DCE5" stroke-width="3"/>
+  <text x="683" y="121" text-anchor="middle" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="34" font-weight="800">전시회 모드</text>
+
+  <path d="M52 154H1388V286C1388 301.464 1375.46 314 1360 314H80C64.536 314 52 301.464 52 286V154Z" fill="white" stroke="#9CA3AF" stroke-width="4"/>
+
+  <rect x="94" y="162" width="612" height="120" rx="38" fill="white" stroke="#E3E8F0" stroke-width="3"/>
+  <text x="138" y="227" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="28" font-weight="800">학습시킬 엔진 선택</text>
+
+  <rect x="736" y="162" width="612" height="120" rx="38" fill="white" stroke="#E3E8F0" stroke-width="3"/>
+  <text x="780" y="227" fill="#111827" font-family="Apple SD Gothic Neo, sans-serif" font-size="28" font-weight="800">리포트 결과 파일</text>
+
+  <rect x="74" y="346" width="364" height="44" rx="22" fill="#9CA3AF"/>
+  <text x="256" y="374" text-anchor="middle" fill="white" font-family="Apple SD Gothic Neo, sans-serif" font-size="20" font-weight="700">핵심 방향</text>
+  <text x="470" y="376" fill="#475467" font-family="Apple SD Gothic Neo, sans-serif" font-size="21" font-weight="600">
+    선택된 탭과 입력 패널 상단선을 붙여서, 하나의 연결된 작업 페이지처럼 보이게 구성
+  </text>
+</svg>

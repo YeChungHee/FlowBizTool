@@ -1,0 +1,171 @@
+{
+  "analysis_type": "flowpay_underwriting",
+  "company_name": "FlowPay Sample Deal",
+  "requested_tenor_months": 3,
+  "requested_purchase_amount_krw": 120000000,
+  "industry_profile": "manufacturing",
+  "screening": {
+    "business_years": 4.2,
+    "startup_fast_track_supported": false,
+    "complete_capital_impairment": false,
+    "tax_arrears": false,
+    "credit_grade": "B",
+    "recent_legal_action_within_years": 9,
+    "industry_tag": "manufacturing"
+  },
+  "financials": {
+    "annual_sales": 3600000000,
+    "operating_profit": 180000000,
+    "net_profit": 90000000,
+    "operating_margin_pct": 5.0,
+    "ebitda_interest_coverage": 1.7,
+    "cash_conversion_cycle_days": 72
+  },
+  "ews_inputs": {
+    "representative_credit_drop_notches": 0,
+    "yoy_sales_drop_pct": 12,
+    "short_term_debt_growth_pct": 8
+  },
+  "api_enrichment": {
+    "enabled": true,
+    "applicant": {
+      "ecos_industry_code": "C0000"
+    },
+    "buyer": {
+      "dart_corp_name": "삼성전자",
+      "ecos_industry_code": "C0000"
+    }
+  },
+  "proposal_context": {
+    "business_summary": "샘플 제조 거래는 생산과 납품 흐름이 비교적 명확하고, 대기업 매출처와의 거래 설명이 쉬운 구조입니다.",
+    "sales_goal": "초기 제안 단계에서 예상 한도와 마진을 빠르게 설명하고, 고객 미팅으로 연결하는 것입니다.",
+    "use_of_funds": "매입처 대금 선집행과 생산 납기 안정화",
+    "pain_points": [
+      "선결제가 필요한 구간에서 일시적인 운전자금 부담이 생길 수 있음",
+      "납기와 회수 일정이 맞지 않으면 자금공백이 생길 수 있음"
+    ],
+    "strengths": [
+      "매출처 신용과 외부 공시 근거가 상대적으로 강함",
+      "결제기간과 현금전환주기 정합성이 양호함",
+      "거래 구조를 고객에게 설명하기 쉬움"
+    ],
+    "required_documents": [
+      "대표 발주서 또는 공급계약서",
+      "최근 세금계산서 및 납품 확인 자료",
+      "기본 회사 소개자료"
+    ]
+  },
+  "learning_context": {
+    "flow_score_report_submitted": true,
+    "consultation_report_submitted": true,
+    "internal_review_link": "https://www.notion.so/example/internal-review-sample",
+    "additional_sources": [
+      "https://example.com/company-overview",
+      "https://example.com/meeting-note"
+    ]
+  },
+  "applicant": {
+    "company_name": "신청사 샘플 제조",
+    "scores": {
+      "financial": {
+        "annual_sales_scale": 72,
+        "revenue_stability": 70,
+        "operating_profitability": 74,
+        "net_profitability": 69,
+        "liquidity_cashflow": 65,
+        "leverage": 63
+      },
+      "business": {
+        "onsite_business_alignment": 82,
+        "registry_business_alignment": 79,
+        "industry_condition": 62,
+        "business_model_resilience": 71,
+        "external_funding_validation": 67,
+        "customer_diversification": 61
+      },
+      "management": {
+        "representative_execution": 79,
+        "actual_manager_match": 84,
+        "shareholder_structure": 70,
+        "representative_history": 76,
+        "employee_history": 71,
+        "governance_control": 68
+      },
+      "compliance": {
+        "national_tax_compliance": 92,
+        "local_tax_compliance": 88,
+        "four_insurance_compliance": 86,
+        "trade_delinquency": 78,
+        "loan_delinquency": 80,
+        "legal_dispute_status": 84
+      },
+      "external": {
+        "corporate_credit_grade_signal": 63,
+        "dart_signal": 55,
+        "ecos_signal": 58,
+        "cretop_signal": 66,
+        "public_reputation": 72,
+        "employee_reputation": 64
+      }
+    }
+  },
+  "buyer": {
+    "company_name": "매출처 샘플 대기업",
+    "scores": {
+      "financial": {
+        "buyer_revenue_scale": 88,
+        "buyer_profitability": 80,
+        "buyer_liquidity": 77,
+        "buyer_leverage": 69,
+        "buyer_cashflow": 82
+      },
+      "business": {
+        "buyer_industry_condition": 70,
+        "buyer_business_stability": 83,
+        "buyer_market_position": 82,
+        "buyer_reputation": 79,
+        "buyer_registry_alignment": 86
+      },
+      "payment": {
+        "payment_history": 81,
+        "settlement_stability": 78,
+        "invoice_acceptance_clarity": 84,
+        "dispute_setoff_risk": 75,
+        "concentration_risk": 58,
+        "delay_pattern": 72
+      },
+      "external": {
+        "buyer_credit_grade_signal": 81,
+        "buyer_dart_signal": 72,
+        "buyer_ecos_signal": 60,
+        "buyer_cretop_signal": 78,
+        "buyer_funding_signal": 68
+      }
+    }
+  },
+  "transaction": {
+    "scores": {
+      "structure": {
+        "order_authenticity": 85,
+        "contract_enforceability": 79,
+        "delivery_verification": 82,
+        "invoice_proof": 86,
+        "recourse_strength": 68,
+        "fraud_control_strength": 71
+      },
+      "tenor": {
+        "cash_conversion_cycle_fit": 76,
+        "requested_tenor_fit": 74,
+        "seller_survival_buffer": 66,
+        "buyer_survival_buffer": 78,
+        "emergency_liquidity_backstop": 63
+      },
+      "macro": {
+        "industry_outlook": 64,
+        "macro_sensitivity": 58,
+        "commodity_volatility": 52,
+        "fx_or_policy_risk": 60
+      }
+    }
+  }
+}

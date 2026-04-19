@@ -1,0 +1,49 @@
+{
+  "analysis_type": "flowpay_3m_receivable",
+  "company_name": "FlowBiz Supplier A",
+  "industry": "B2B raw material procurement",
+  "modifiers": {
+    "event_risk": -1,
+    "support_uplift": 1
+  },
+  "scores": {
+    "data_reliability": {
+      "accounting_reliability": 49,
+      "tax_filing_consistency": 58,
+      "audit_quality": 42,
+      "bank_statement_verifiability": 64,
+      "document_integrity": 69
+    },
+    "seller_operating_strength": {
+      "order_visibility": 74,
+      "gross_margin_buffer": 66,
+      "inventory_turnover_visibility": 70,
+      "customer_diversification": 52,
+      "working_capital_discipline": 61,
+      "management_responsiveness": 75
+    },
+    "buyer_receivable_strength": {
+      "buyer_credit_quality": 78,
+      "buyer_payment_history": 71,
+      "buyer_concentration_diversity": 48,
+      "invoice_acceptance_clarity": 76,
+      "setoff_dispute_risk": 63,
+      "buyer_industry_stability": 68
+    },
+    "transaction_structure": {
+      "electronic_contract_enforceability": 80,
+      "invoice_delivery_proof": 84,
+      "goods_essentiality": 77,
+      "repayment_source_clarity": 75,
+      "recourse_strength": 65,
+      "fraud_control_strength": 70
+    },
+    "tenor_liquidity_match": {
+      "cash_conversion_cycle_fit": 72,
+      "tenor_adequacy": 76,
+      "seasonality_stability": 62,
+      "emergency_liquidity_backstop": 54,
+      "refinancing_dependence": 58
+    }
+  }
+}

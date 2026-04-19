@@ -1,0 +1,51 @@
+{
+  "company_name": "FlowBiz Sample Manufacturing",
+  "industry": "General Manufacturing",
+  "modifiers": {
+    "event_risk": -1,
+    "support_uplift": 1,
+    "contingent_liability_penalty": -1
+  },
+  "scores": {
+    "management_risk": {
+      "governance": 72,
+      "transparency": 74,
+      "strategy_consistency": 76,
+      "management_capability": 78,
+      "internal_control": 73
+    },
+    "group_risk": {
+      "affiliate_support": 68,
+      "dependency": 61,
+      "funding_linkage": 65,
+      "guarantee_support_capacity": 70,
+      "standalone_strength": 72
+    },
+    "industry_risk": {
+      "cyclicality": 58,
+      "regulation_environment": 70,
+      "competitive_intensity": 57,
+      "barriers_to_entry": 66,
+      "supply_demand_balance": 60,
+      "industry_outlook": 62
+    },
+    "business_risk": {
+      "market_position": 71,
+      "diversification": 68,
+      "operating_efficiency": 73,
+      "revenue_stability": 69,
+      "strategic_execution": 72,
+      "bargaining_power": 64
+    },
+    "financial_risk": {
+      "profitability": 70,
+      "cash_flow": 66,
+      "leverage": 61,
+      "liquidity": 69,
+      "financial_flexibility": 67,
+      "accounting_quality": 78,
+      "asset_quality": 72,
+      "debt_structure_quality": 68
+    }
+  }
+}
