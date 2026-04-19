@@ -1,99 +1,122 @@
-# FlowPay 세일즈 자동화 엔진
+# FlowBizTool
 
-국내 주요 자본시장용 신용평가사 공개 방법론과 플로우페이 거래 구조를 참고해 만든 `영업 참고용 거래 가설 평가 + 제안서/이메일 자동화 엔진`입니다.
+`BizAiPro` 평가엔진을 기반으로 만든 플로우페이 세일즈 자동화 도구입니다.  
+기업리포트, 상담보고서, 심사보고서, 전시회 공개정보를 읽어 `평가 결과`, `제안서`, `이메일 초안`까지 한 흐름으로 만드는 것을 목표로 합니다.
 
-현재 반영한 기관:
+## 프로젝트 성격
 
+- 이 저장소는 `공식 심사 확정 시스템`이 아닙니다.
+- 목적은 `세일즈 참고용 평가`, `예상 한도/마진`, `제안서`, `이메일 자동화`입니다.
+- 국내 주요 신용평가사 공개 방법론과 플로우페이 거래 구조를 참고해 설명 가능한 엔진 형태로 구현했습니다.
+
+핵심 학습 대상:
 - 한국신용평가(KIS)
 - NICE신용평가
 - 한국기업평가(KR)
 
-이 프로젝트는 실제 신용평가사의 내부 비공개 스코어카드를 복제한 것이 아니라, 공개된 평가 개요와 평가요소를 공통 프레임으로 통합해 `거래 가능성`, `예상 한도`, `예상 마진율`을 영업 관점에서 추정하는 설명 가능한 도구입니다.
+## 핵심 기능
 
-중요:
-- 이 도구는 `공식 심사 결과`를 확정하지 않습니다.
-- 이 도구는 `세일즈 참고용 기업평가 보고서`, `제안서`, `이메일 초안`을 만드는 데 목적이 있습니다.
+- 기업리포트 PDF 파싱
+- 상담보고서/심사보고서 Notion 링크 읽기
+- 학습모드 / 전시회모드 입력 분기
+- 플로우페이 거래 가설 평가
+- 예상 한도액 / 예상 마진율 / 결제유예기간 표시
+- BizAiPro 제안서 초안 생성
+- 이메일 템플릿 6종 자동 생성
+- 최근 실제 학습 데이터 대시보드
 
-## 구성
+## 주요 파일
 
-- [docs/integrated_credit_rating_comparison.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/integrated_credit_rating_comparison.md)
-  기관별 비교표와 통합 평가축 설명
-- [docs/flowpay_service_learning.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_service_learning.md)
-  플로우페이 서비스 구조와 심사 포인트 학습 노트
-- [docs/flowpay_3m_methodology.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_3m_methodology.md)
-  플로우페이 3개월 채권 생존성 평가 방법론
-- [docs/flowpay_manual_reflection.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_manual_reflection.md)
-  플로우페이 심사 매뉴얼 학습 내용과 엔진 반영 사항
-- [docs/flowpay_atude_sample.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_atude_sample.md)
-  에이튜드 상담내용과 기업 리포트를 반영한 샘플 케이스
-- [docs/flowpay_atude_approval_path.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_atude_approval_path.md)
-  에이튜드 케이스를 APPROVE로 끌어올리기 위한 개선 경로
-- [docs/flowpay_atude_underwriting_report.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_atude_underwriting_report.md)
-  에이튜드 케이스 내부 심사보고서 초안
-- [docs/flowpay_atude_proposal_draft.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_atude_proposal_draft.md)
-  에이튜드 대상 외부 제안서 초안
-- [data/integrated_credit_rating_framework.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/data/integrated_credit_rating_framework.json)
-  엔진이 읽는 평가축, 세부지표, 가중치, 등급구간
-- [data/api_keys.example.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/data/api_keys.example.json)
-  ECOS/DART 연동용 로컬 설정 예시
-- [docs/flowpay_api_enrichment.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowpay_api_enrichment.md)
-  한국은행 ECOS와 DART를 심사엔진에 반영하는 규칙 설명
-- [engine.py](/Users/appler/Documents/COTEX/FlowBiz_ultra/engine.py)
-  CLI 실행용 평가엔진
-- [external_apis.py](/Users/appler/Documents/COTEX/FlowBiz_ultra/external_apis.py)
-  ECOS/DART 공식 API 조회와 점수화 로직
-- [proposal_generator.py](/Users/appler/Documents/COTEX/FlowBiz_ultra/proposal_generator.py)
-  BizAiPro 제안서 초안 생성 로직
-- [report_extractors.py](/Users/appler/Documents/COTEX/FlowBiz_ultra/report_extractors.py)
-  FlowScore 신용평가 PDF를 학습/평가용 정규화 JSON으로 바꾸는 파서
-- [bizaipro_learning.py](/Users/appler/Documents/COTEX/FlowBiz_ultra/bizaipro_learning.py)
-  BizAiPro 학습 후보 적재, 10건 단위 업데이트, 전후 비교 리포트 생성
-- [docs/bizaipro_learning_loop.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/bizaipro_learning_loop.md)
-  BizAiPro 학습 루프, 버전명 규칙, 가중치 기준 설명
-- [sample_inputs/manufacturing_case.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/manufacturing_case.json)
-  예시 입력 파일
-- [sample_inputs/flowpay_3m_case.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/flowpay_3m_case.json)
-  플로우페이 3개월 채권 생존성 예시 입력
-- [sample_inputs/flowpay_underwriting_case.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/flowpay_underwriting_case.json)
-  플로우페이 종합 심사용 예시 입력
-- [sample_inputs/flowpay_atude_case.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/flowpay_atude_case.json)
-  에이튜드 실제 상담/리포트 기반 샘플 입력
-- [sample_inputs/flowpay_atude_approve_target.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/flowpay_atude_approve_target.json)
-  에이튜드 승인목표 시뮬레이션 입력
-- [sample_inputs/breedb_flowscore_additional_info.json](/Users/appler/Documents/COTEX/FlowBiz_ultra/sample_inputs/breedb_flowscore_additional_info.json)
-  FlowScore 추가 정보 리포트를 정규화한 샘플 입력
-- [docs/flowscore_additional_info_preparation.md](/Users/appler/Documents/COTEX/FlowBiz_ultra/docs/flowscore_additional_info_preparation.md)
-  FlowScore PDF를 추가 정보 자료로 준비하는 기준과 사용법
+### 백엔드
 
-## 빠른 실행
+- [`app.py`](./app.py)
+  FastAPI 서버, 웹앱 API, 학습모드/전시회모드 처리
+- [`engine.py`](./engine.py)
+  통합 평가엔진 및 플로우페이 종합 평가 로직
+- [`external_apis.py`](./external_apis.py)
+  ECOS / DART 연동 로직
+- [`report_extractors.py`](./report_extractors.py)
+  FlowScore 계열 PDF 파서
+- [`proposal_generator.py`](./proposal_generator.py)
+  제안서 초안 생성
+- [`bizaipro_learning.py`](./bizaipro_learning.py)
+  학습 후보 적재, 10건 단위 업데이트, 비교 리포트 생성
+
+### 웹 화면
+
+- [`web/bizaipro_home.html`](./web/bizaipro_home.html)
+  메인 홈 / 입력 시작
+- [`web/bizaipro_evaluation_result.html`](./web/bizaipro_evaluation_result.html)
+  평가 결과 페이지
+- [`web/bizaipro_proposal_generator.html`](./web/bizaipro_proposal_generator.html)
+  제안서 생성 페이지
+- [`web/bizaipro_email_generator.html`](./web/bizaipro_email_generator.html)
+  이메일 생성 페이지
+- [`web/bizaipro_engine_compare.html`](./web/bizaipro_engine_compare.html)
+  엔진 버전 비교 페이지
+- [`web/bizaipro_shared.js`](./web/bizaipro_shared.js)
+  공통 상태/렌더링 로직
+- [`web/bizaipro_shared.css`](./web/bizaipro_shared.css)
+  공통 UI 스타일
+
+### 데이터 / 문서
+
+- [`data/integrated_credit_rating_framework.json`](./data/integrated_credit_rating_framework.json)
+  통합 평가축, 세부지표, 가중치
+- [`data/exhibition_company_db_schema.json`](./data/exhibition_company_db_schema.json)
+  전시회 기업 DB 스키마
+- [`docs/integrated_credit_rating_comparison.md`](./docs/integrated_credit_rating_comparison.md)
+  3사 비교 및 통합 프레임
+- [`docs/flowpay_api_enrichment.md`](./docs/flowpay_api_enrichment.md)
+  ECOS / DART 반영 규칙
+- [`docs/bizaipro_learning_loop.md`](./docs/bizaipro_learning_loop.md)
+  학습 루프 / 버전 규칙
+
+## 빠른 시작
+
+### 1. 로컬 서버 실행
+
+```bash
+python3 -m uvicorn app:app --host 127.0.0.1 --port 8011
+```
+
+브라우저:
+
+- [http://127.0.0.1:8011/web/bizaipro_home.html](http://127.0.0.1:8011/web/bizaipro_home.html)
+
+### 2. CLI 평가엔진 실행
 
 ```bash
 python3 engine.py --show-table
 python3 engine.py --input sample_inputs/manufacturing_case.json
-python3 engine.py --input sample_inputs/flowpay_3m_case.json
 python3 engine.py --input sample_inputs/flowpay_underwriting_case.json
 python3 engine.py --input sample_inputs/flowpay_atude_case.json
-python3 engine.py --input sample_inputs/flowpay_atude_approve_target.json
 python3 engine.py --input sample_inputs/flowpay_atude_case.json --bundle-out outputs/atude_bundle
+```
+
+### 3. 학습 루프 실행
+
+```bash
 python3 bizaipro_learning.py status
 python3 bizaipro_learning.py record --input sample_inputs/flowpay_atude_case.json --label "에이튜드 1차"
 python3 bizaipro_learning.py update
 ```
 
-## ECOS / DART 설정
+## API 키 설정
 
-엔진은 아래 두 방식 중 하나로 공식 API 키를 읽습니다.
+엔진은 ECOS / DART API 키를 두 방식 중 하나로 읽습니다.
 
-1. 환경변수
+### 환경변수
 
 ```bash
 export ECOS_API_KEY="..."
 export DART_API_KEY="..."
+export NOTION_API_TOKEN="..."
 ```
 
-2. 로컬 설정 파일
+### 로컬 설정 파일
 
-`/Users/appler/Documents/COTEX/FlowBiz_ultra/data/api_keys.local.json`
+`data/api_keys.local.json`
 
 ```json
 {
@@ -102,101 +125,74 @@ export DART_API_KEY="..."
 }
 ```
 
-`api_keys.local.json`은 로컬 전용 파일로 사용하고, 저장소 공유 대상에서는 제외하는 것을 권장합니다.
+`data/api_keys.local.json`은 `.gitignore`에 포함되어 있습니다.
 
-## FlowScore 추가 정보 리포트 파싱
+## 입력 모드
 
-추가 정보로 제공되는 FlowScore PDF는 아래 명령으로 정규화 JSON으로 바꿀 수 있습니다.
+### 학습모드
 
-```bash
-python3 report_extractors.py "/path/to/flowscore_report.pdf" --out sample_inputs/parsed_flowscore_report.json
-```
+아래 자료를 기준으로 평가 결과를 만듭니다.
 
-FastAPI 서버를 띄운 경우 아래 API로도 바로 읽을 수 있습니다.
+- 플로우스코어 리포트
+- 상담리포트(Notion 링크)
+- 상담보고서 파일
+- 내부심사보고서(Notion 링크)
+- 추가 정보
 
-```bash
-curl -X POST http://127.0.0.1:8011/api/report/flowscore-parse \
-  -F "file=@/path/to/flowscore_report.pdf"
-```
+현재 기준:
+- `플로우스코어리포트 + 상담보고서`  
+  평가에는 반영되지만 엔진 업데이트 건수에는 반영되지 않음
+- `플로우스코어리포트 + 상담보고서 + 심사보고서`  
+  엔진 학습 데이터로 인정되고 업데이트 건수에 반영
 
-## 입력 형식
+### 전시회모드
 
-입력 파일은 JSON이며, 각 세부 평가요소를 `0~100` 범위로 넣습니다.
+아래 공개정보를 기준으로 콜드세일즈형 평가를 만듭니다.
 
-```json
-{
-  "company_name": "Sample Manufacturing Co.",
-  "industry": "General Manufacturing",
-  "modifiers": {
-    "event_risk": -2,
-    "support_uplift": 1
-  },
-  "scores": {
-    "management_risk": {
-      "governance": 70,
-      "transparency": 74,
-      "strategy_consistency": 76,
-      "management_capability": 78,
-      "internal_control": 72
-    }
-  }
-}
-```
+- 전시회 정보 제공 URL
+- 기업 홈페이지 URL
+- 기업리포트(선택)
+- 플로우스코어 리포트(선택)
+- 추가 정보
 
-## 출력 내용
+## 샘플 입력
 
-- 통합 평가 점수
-- 기관별 관점 점수
-- 예비 등급
-- 핵심 강점/약점
-- 범주별 세부 점수
+- [`sample_inputs/manufacturing_case.json`](./sample_inputs/manufacturing_case.json)
+- [`sample_inputs/flowpay_3m_case.json`](./sample_inputs/flowpay_3m_case.json)
+- [`sample_inputs/flowpay_underwriting_case.json`](./sample_inputs/flowpay_underwriting_case.json)
+- [`sample_inputs/flowpay_atude_case.json`](./sample_inputs/flowpay_atude_case.json)
+- [`sample_inputs/exhibition_company_sample.json`](./sample_inputs/exhibition_company_sample.json)
+- [`sample_inputs/exhibition_kcnc_2026.json`](./sample_inputs/exhibition_kcnc_2026.json)
 
-플로우페이 3개월 채권 입력의 경우:
+## 현재 구현 상태
 
-- 3개월 생존성 점수
-- 생존 판단 등급
-- 암시적 생존확률 구간
-- 중소기업 재무신뢰도 헤어컷
-- 데이터 신뢰도 수준
+현재 저장소에서 비교적 안정적으로 동작하는 부분:
 
-플로우페이 종합 심사 입력의 경우:
+- FlowScore 계열 리포트 일부 포맷 파싱
+- 학습모드 입력 저장 및 결과 화면 반영
+- 상담/심사보고서 Notion 링크 읽기 구조
+- 제안서 / 이메일 생성 화면
+- 실제 학습 데이터 대시보드
 
-- 신청사/매출처/거래구조 통합 평가
-- ECOS 업황/금리/물가 및 DART 공시정보 기반 외부신호 보강
-- 1~5개월 부도확률 곡선
-- 예상 1회 거래 한도액
-- 영업 참고용 마진율과 보수적 기준 마진율 비교
-- 거래 가능성 추천 문구
-- 추가 확인 신호와 위험 포인트
-- 영업 참고 요약문
-- BizAiPro 제안서 초안
-- 고객 발송용 이메일 초안
-- 거래 가설 평가 리포트
+아직 계속 고도화가 필요한 부분:
 
-`--bundle-out` 옵션을 사용하면 아래 파일이 한 번에 저장됩니다.
-- `sales_summary.txt`
-- `sales_report.md`
-- `proposal_draft.md`
-- `sales_email_draft.txt`
-
-## 페이지 샘플
-
-`BizAiPro리포트 생성 페이지` 샘플은 아래 파일에서 바로 볼 수 있습니다.
-
-- [web/bizaipro_report_page_sample.html](/Users/appler/Documents/COTEX/FlowBiz_ultra/web/bizaipro_report_page_sample.html)
-
-이 샘플 페이지에는 아래 항목이 포함되어 있습니다.
-- 플로우스코어 리포트, 상담보고서, 추가 정보, 내부심사리포트 입력폼
-- 신청업체/매출처/거래구조/통합 점수의 해석 카드
-- `왜 이 점수가 나왔는지`를 보여주는 계산식 섹션
-- 점수별 등급과 등급의 의미
-- 학습 적격 여부, 업데이트 생성 여부, 반영된 가중치
-- 맥킨지 스타일 BizAiPro리포트 미리보기
+- 리포트 포맷 다양성 대응
+- 상담/심사보고서 구조화 품질
+- 업황분석/외부신호 반영 정밀도
+- 결제유예기간 최적화 로직
+- 평가 결과와 문서 생성의 회귀 테스트 체계
 
 ## 한계
 
-- 공식 공개 방법론 기반의 교육용/사내용 예비엔진입니다.
-- 실제 위원회 판단, 비공개 내부 가중치, 업종별 세밀한 오버레이는 완전히 반영하지 못합니다.
-- 최종 투자판단이나 공식 등급의 대체 수단이 아닙니다.
-- `flowpay_3m_receivable` 모드는 장기 기업신용등급이 아니라, 플로우페이형 거래의 `3개월 단기 생존성`을 보기 위한 별도 모델입니다.
-- `flowpay_underwriting` 모드는 심사 매뉴얼 분석 보고서의 권고를 반영했지만, 실제 목적은 `세일즈 자동화용 거래 가설 평가`입니다.
+- 공개 방법론 기반의 내부 참고용 엔진입니다.
+- 실제 신용평가사의 비공개 스코어카드나 위원회 판단을 복제하지 않습니다.
+- 최종 투자판단, 심사확정, 공식 신용등급의 대체 수단이 아닙니다.
+
+## 참고 문서
+
+- [`docs/integrated_credit_rating_comparison.md`](./docs/integrated_credit_rating_comparison.md)
+- [`docs/flowpay_service_learning.md`](./docs/flowpay_service_learning.md)
+- [`docs/flowpay_3m_methodology.md`](./docs/flowpay_3m_methodology.md)
+- [`docs/flowpay_manual_reflection.md`](./docs/flowpay_manual_reflection.md)
+- [`docs/bizaipro_report_page_plan.md`](./docs/bizaipro_report_page_plan.md)
+- [`docs/bizaipro_exhibition_coldsales_wireframe.md`](./docs/bizaipro_exhibition_coldsales_wireframe.md)
