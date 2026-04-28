@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FlowBizTool 업데이트 이력</title>
+    <link rel="stylesheet" href="./bizaipro_shared.css" />
+    <style>
+      /* ── Timeline layout ─────────────────────────────────────────────── */
+      .timeline { display: flex; flex-direction: column; }
+
+      .timeline-entry {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 0 2rem;
+        position: relative;
+      }
+
+      /* Left: version label column */
+      .tl-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        padding-top: 1.2rem;
+        padding-right: 1.4rem;
+        border-right: 2px solid var(--border);
+        position: relative;
+        gap: 0.25rem;
+      }
+      .tl-meta::after {
+        content: '';
+        position: absolute;
+        right: -7px;
+        top: 1.55rem;
+        width: 12px; height: 12px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--surface);
+        box-shadow: 0 0 0 2px var(--accent);
+      }
+      .tl-entry-planned .tl-meta::after { background: var(--muted); box-shadow: 0 0 0 2px var(--muted); opacity: 0.4; }
+      .tl-entry-dim .tl-meta::after { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b8; }
+
+      .tl-version {
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        color: var(--accent);
+        font-family: monospace;
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+        border-radius: 4px;
+        padding: 2px 7px;
+        text-align: right;
+      }
+      .tl-entry-dim .tl-version { color: #64748b; background: #f1f5f9; border-color: #cbd5e1; }
+      .tl-entry-planned .tl-version { color: var(--muted); background: var(--bg); border-color: var(--border); }
+
+      .tl-date { font-size: 0.7rem; color: var(--muted); text-align: right; }
+      .tl-spec { font-size: 0.66rem; color: var(--muted); font-family: monospace; opacity: 0.6; text-align: right; }
+
+      /* Right: body */
+      .tl-body { padding: 1.2rem 0 2.2rem 0; }
+      .tl-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0 0 0.3rem 0; }
+      .tl-entry-dim .tl-title { color: #475569; }
+      .tl-entry-planned .tl-title { color: var(--muted); }
+      .tl-subtitle { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.9rem 0; line-height: 1.4; }
+
+      .tl-latest-badge {
+        display: inline-block;
+        font-size: 0.64rem; font-weight: 700;
+        background: var(--accent); color: #fff;
+        padding: 2px 7px; border-radius: 3px;
+        margin-left: 0.5rem; vertical-align: middle;
+      }
+
+      /* Change groups */
+      .change-group { margin-bottom: 0.75rem; }
+      .change-category {
+        display: inline-block;
+        font-size: 0.67rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+        padding: 1px 7px; border-radius: 3px; margin-bottom: 0.35rem;
+      }
+      .cat-new     { background: #d1fae5; color: #065f46; }
+      .cat-fix     { background: #fee2e2; color: #991b1b; }
+      .cat-improve { background: #dbeafe; color: #1e40af; }
+      .cat-engine  { background: #fef3c7; color: #92400e; }
+      .cat-infra   { background: #f3f4f6; color: #374151; }
+
+      .change-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.22rem; }
+      .change-items li {
+        font-size: 0.8rem; color: var(--text); padding-left: 1rem; position: relative; line-height: 1.5;
+      }
+      .change-items li::before { content: '·'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+      /* Stats row */
+      .stats-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.8rem; }
+      .stat-chip {
+        font-size: 0.73rem;
+        background: var(--bg); border: 1px solid var(--border);
+        border-radius: 6px; padding: 3px 10px; color: var(--muted);
+      }
+      .stat-chip strong { color: var(--text); }
+
+      /* Section divider */
+      .tl-section-label {
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--muted); padding: 1rem 0 0.5rem 0;
+        border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;
+      }
+
+      @media (max-width: 640px) {
+        .timeline-entry { grid-template-columns: 1fr; }
+        .tl-meta {
+          flex-direction: row; align-items: center; gap: 0.5rem;
+          border-right: none; border-bottom: 2px solid var(--border);
+          padding-right: 0; padding-bottom: 0.5rem;
+        }
+        .tl-meta::after { display: none; }
+        .tl-body { padding-top: 0.7rem; }
+      }
+    </style>
+  </head>
+  <body class="changelog-page">
+    <div class="page-shell">
+      <div id="top-nav" class="top-nav"></div>
+
+      <header class="hero-grid">
+        <section class="hero-main">
+          <div class="brand-pill">릴리즈 노트</div>
+          <h1>FlowBizTool 업데이트 이력</h1>
+          <p class="subcopy">
+            BizAiPro 평가엔진 파라미터 변경, 플랫폼 UI, 검증 파이프라인의 버전별 이력입니다.<br />
+            구버전 서버(FlowBiz, port 8000) 기준으로 정리되었습니다.
+          </p>
+        </section>
+        <aside class="hero-side">
+          <div class="status-card">
+            <div class="label">현재 플랫폼</div>
+            <div class="value">FlowBiz_ultra</div>
+          </div>
+          <div class="status-card">
+            <div class="label">최신 엔진 파라미터</div>
+            <div class="value">v.1.18.02</div>
+          </div>
+          <div class="status-card">
+            <div class="label">검증 파이프라인</div>
+            <div class="value">FBU-VAL-0013</div>
+          </div>
+        </aside>
+      </header>
+
+      <main style="max-width: 900px; margin: 0 auto; padding: 0 24px 48px;">
+        <section class="panel">
+
+          <!-- ── 섹션: 플랫폼 검증 파이프라인 (FlowBiz_ultra) ────────────────── -->
+          <div class="tl-section-label">플랫폼 · 검증 파이프라인 (FlowBiz_ultra)</div>
+          <div class="timeline" id="platform-timeline"></div>
+
+          <!-- ── 섹션: 평가엔진 파라미터 (FlowBiz 구버전) ──────────────────── -->
+          <div class="tl-section-label" style="margin-top:1.5rem;">평가엔진 파라미터 버전 (FlowBiz 구버전)</div>
+          <div class="timeline" id="engine-timeline"></div>
+
+          <!-- ── 섹션: UI / 기능 이력 (FlowBiz 구버전) ─────────────────────── -->
+          <div class="tl-section-label" style="margin-top:1.5rem;">UI · 기능 이력 (FlowBiz 구버전)</div>
+          <div class="timeline" id="ui-timeline"></div>
+
+        </section>
+      </main>
+    </div>
+
+    <script src="./bizaipro_shared.js"></script>
+    <script>
+      const shared = window.BizAiProShared;
+      shared.renderTopNav("changelog");
+
+      // ── 데이터 ───────────────────────────────────────────────────────────
+      const PLATFORM_CHANGELOG = [
+        {
+          version: "v.local.learning",
+          date: "2026-04-27",
+          spec: "FBU-VAL-0013",
+          title: "Notion 자동조회 오류 게이트 + SourceQuality 강화",
+          subtitle: "에러 시에도 미팅/상담 누락 여부 판단 → 팝업 분기, notionLookupStatus/Detail shape 분리",
+          latest: true,
+          groups: [
+            { cat: "fix", label: "버그 수정", items: [
+              "Finding 2: inner catch → uncoveredAfterError 계산, errorLookup 구성, showNotionLookupModal 호출",
+              "Finding 2: outer catch NOTION_LOOKUP_CANCELLED 분기 추가 (취소 시 별도 fail 메시지)",
+              "Finding 3: flowScoreFile guard — flowScoreFile 없을 때 Notion 자동조회 트리거 차단",
+              "Finding 4: notionLookupStatus(상태맵) / notionLookupDetail(전체 객체) shape 분리"
+            ]},
+            { cat: "improve", label: "구조 개선", items: [
+              "source_quality_from_state(): consultation과 meeting 독립 키로 분리 (app.py)",
+              "errorLookup에 missing_notion_reports 필수 포함"
+            ]},
+            { cat: "infra", label: "테스트", items: [
+              "T21 회귀 테스트 추가 (TestNotionErrorGateAndGuards — 11개 메서드)",
+              "pytest 총 72개 통과"
+            ]}
+          ],
+          stats: [{ label: "수정 Finding", value: "3건" }, { label: "pytest 통과", value: "72개" }]
+        },
+        {
+          version: "v.1.18.02-ultra",
+          date: "2026-04",
+          spec: "FBU-VAL-0009",
+          title: "Notion 자동조회 파이프라인 + 팝업 게이트",
+          subtitle: "상담·미팅·심사보고서 Notion 자동 조회, 누락 시 취소/진행 팝업 분기",
+          latest: false,
+          groups: [
+            { cat: "new", label: "신규", items: [
+              "notion_lookup_by_company() — 회사명 기반 Notion DB 자동 조회",
+              "/api/notion/auto-lookup-and-parse 신규 엔드포인트",
+              "showNotionLookupModal() — Promise gate 패턴 팝업",
+              "평가 결과 화면 Notion 조회 상태 경고 배너"
+            ]},
+            { cat: "infra", label: "테스트", items: [
+              "T11~T19 회귀 테스트 추가 (9개)"
+            ]}
+          ],
+          stats: [{ label: "신규 API", value: "1개" }, { label: "신규 테스트", value: "T11–T19" }]
+        },
+        {
+          version: "v.1.16.01-ultra",
+          date: "2026-03",
+          spec: "FBU-VAL-0005",
+          title: "SourceQuality 게이트 + Active Framework 구축",
+          subtitle: "소스 품질 기반 학습 적격 판단, merged_components 경로 수정, promote 명령",
+          latest: false,
+          groups: [
+            { cat: "new", label: "신규", items: [
+              "source_quality_from_state(): present/usable_for_evaluation/usable_for_update 3단계 품질 게이트",
+              "learning_material_components(): 소스별 학습 가중치 (flow_score 0.35, consultation 0.35, internal_review 0.15, additional 0.05)",
+              "load_active_framework() + promote 명령"
+            ]},
+            { cat: "infra", label: "테스트", items: ["T1~T10 회귀 테스트 추가 (10개)"] }
+          ],
+          stats: [{ label: "신규 테스트", value: "T1–T10" }]
+        }
+      ];
+
+      const ENGINE_CHANGELOG = [
+        {
+          version: "v.1.18.02",
+          date: "2026-04-23",
+          spec: null,
+          title: "연매출 기준율 7.5% 최종 확정",
+          subtitle: "리스크팀 검토 결과 반영 — 8.4%에서 7.5%로 하향",
+          latest: false, dim: true,
+          groups: [
+            { cat: "engine", label: "파라미터 변경", items: [
+              "tier1_annual_sales_base_rate: 8.4% → 7.5% 하향 확정",
+              "Dynamic Rate S1 유지 (GM×0.30 + OP×0.50 + NP×0.20, clamp[3%,20%])",
+              "C등급 조정계수 0.60 유지"
+            ]}
+          ],
+          stats: [{ label: "기준율", value: "7.5%" }, { label: "DR 방식", value: "S1 활성" }]
+        },
+        {
+          version: "v.1.18.01",
+          date: "2026-04-23",
+          spec: null,
+          title: "C등급 조정계수 강화 (0.80 → 0.60)",
+          subtitle: "BB- 매핑 C등급 한도 보수성 강화",
+          latest: false, dim: true,
+          groups: [
+            { cat: "engine", label: "파라미터 변경", items: [
+              "tier2_execution_ratio C등급: 0.80 → 0.60 하향",
+              "한도 보수성 강화 목적 (BB- 실질 리스크 반영)"
+            ]}
+          ],
+          stats: []
+        },
+        {
+          version: "v.1.18.00",
+          date: "2026-04-23",
+          spec: null,
+          title: "Dynamic Rate S1 공식 통합",
+          subtitle: "업체별 실제 마진율 기반 기준율 산출 공식 도입, 고정 8.4%와 병행 운용",
+          latest: false, dim: true,
+          groups: [
+            { cat: "engine", label: "신규 공식", items: [
+              "Dynamic Rate S1: GM×0.30 + OP×0.50 + NP×0.20 (3개년 평균 기반)",
+              "clamp[3%, 20%] 적용",
+              "고정 8.4% 방식과 병행 — 사용자 선택 가능"
+            ]}
+          ],
+          stats: [{ label: "DR 방식", value: "S1 도입" }]
+        },
+        {
+          version: "v.1.17.02",
+          date: "2026-04-23",
+          spec: null,
+          title: "연매출 기준율 8.4% 상향",
+          subtitle: "한도 정책 매뉴얼 실운용 기준 반영 — 0.75%에서 8.4%로 대폭 현실화",
+          latest: false, dim: true,
+          groups: [
+            { cat: "engine", label: "파라미터 변경", items: [
+              "tier1_annual_sales_base_rate: 0.75% → 8.4% 상향",
+              "한도 정책 매뉴얼 기준으로 현실화"
+            ]}
+          ],
+          stats: [{ label: "기준율 변화", value: "0.75% → 8.4%" }]
+        }
+      ];
+
+      const UI_CHANGELOG = [
+        {
+          version: "FlowBiz UI (구버전)",
+          date: "2026-04-23",
+          spec: "port 8000",
+          title: "이메일 생성기 10 템플릿 + 관리 모달 4종 + 고급 입력 탭",
+          subtitle: "스크린샷의 소스 버전. 이후 FlowBiz_ultra 마이그레이션 과정에서 일부 기능 미이전 상태",
+          latest: false, dim: true,
+          groups: [
+            { cat: "new", label: "이메일 생성기", items: [
+              "10가지 메시지 전략 템플릿 (구버전 6개 → 추가 4개: 납기 대응, 원자재 가격 상승기, 성수기 물량 확보, 신규 거래처 수주)",
+              "담당자 관리 모달 — PIN 6자리 기반 등록/수정/삭제",
+              "서명 관리 모달 — 담당자별 서명 저장, 이메일 본문 자동 적용",
+              "상용구 관리 모달 — HTML 링크 포함 상용구, 빠른 삽입",
+              "커스텀 템플릿 모달 — 사용자 정의 이메일 템플릿 저장/적용",
+              "적용 지표 요약 패널 — 신용등급, 적합도 점수, 결제유예기간, 연간 회전 횟수, 마진율, 매출 기대액",
+              "이메일 본문/제목 contenteditable 직접 편집",
+              "/api/email/generate, /api/user-data API 연동"
+            ]},
+            { cat: "new", label: "홈 화면", items: [
+              "고급 입력 탭 (3번째 탭) — 직접 입력 폼 다수",
+              "학습 이력 페이지네이션 (list navigation)",
+              "엔진 업데이트 배너 + 미리보기/실행 모달 (가중치 변화 테이블)"
+            ]}
+          ],
+          stats: [
+            { label: "이메일 템플릿", value: "10종" },
+            { label: "관리 모달", value: "4개" },
+            { label: "홈 탭", value: "3개 (학습/전시회/고급입력)" }
+          ]
+        }
+      ];
+
+      // ── 렌더링 ───────────────────────────────────────────────────────────
+      const catClass = { new: "cat-new", fix: "cat-fix", improve: "cat-improve", engine: "cat-engine", infra: "cat-infra" };
+
+      function renderEntry(entry) {
+        const specBadge = entry.spec ? `<div class="tl-spec">${entry.spec}</div>` : '';
+        const latestBadge = entry.latest ? `<span class="tl-latest-badge">LATEST</span>` : '';
+        const statsHtml = (entry.stats || []).length
+          ? `<div class="stats-row">${entry.stats.map(s =>
+              `<div class="stat-chip"><strong>${s.value}</strong> ${s.label}</div>`).join('')}</div>`
+          : '';
+        const groupsHtml = (entry.groups || []).map(g => `
+          <div class="change-group">
+            <div class="change-category ${catClass[g.cat] || 'cat-infra'}">${g.label}</div>
+            <ul class="change-items">${g.items.map(i => `<li>${i}</li>`).join('')}</ul>
+          </div>`).join('');
+
+        const cls = entry.planned ? 'tl-entry-planned' : entry.dim ? 'tl-entry-dim' : '';
+        return `
+          <div class="timeline-entry ${cls}">
+            <div class="tl-meta">
+              <div class="tl-version">${entry.version}</div>
+              <div class="tl-date">${entry.date}</div>
+              ${specBadge}
+            </div>
+            <div class="tl-body">
+              <div class="tl-title">${entry.title}${latestBadge}</div>
+              <div class="tl-subtitle">${entry.subtitle}</div>
+              ${groupsHtml}
+              ${statsHtml}
+            </div>
+          </div>`;
+      }
+
+      document.getElementById("platform-timeline").innerHTML = PLATFORM_CHANGELOG.map(renderEntry).join('');
+      document.getElementById("engine-timeline").innerHTML   = ENGINE_CHANGELOG.map(renderEntry).join('');
+      document.getElementById("ui-timeline").innerHTML       = UI_CHANGELOG.map(renderEntry).join('');
+    </script>
+  </body>
+</html>

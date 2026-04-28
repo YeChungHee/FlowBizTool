@@ -52,9 +52,9 @@ _NOTION_REPORT_TYPE_LABEL: dict[str, str] = {
 ENGINE_PRESETS = {
     "latest": {
         "key": "latest",
-        "label": "최신 엔진 v.1.16.01",
-        "engine_version": "v.1.16.01",
-        "description": "전시회형 콜드세일즈 메시지와 액션이 보강된 최신 기준",
+        "label": "최신 엔진 v.local.learning",
+        "engine_version": "v.local.learning",
+        "description": "업로드 자료와 Notion 자동조회 결과를 즉시 반영하는 실시간 학습 기준",
     },
     "previous": {
         "key": "previous",
@@ -1524,16 +1524,22 @@ def source_quality_from_state(state: dict[str, Any]) -> dict[str, Any]:
     # If reportType not yet set (legacy / not parsed yet) fall back to existence
     fs_usable = fs_file and (not report_type or not fs_scan)
 
-    # Consulting / Meeting
+    # Consulting (상담보고서: URL 또는 파일)
     has_consult_url = bool(
         normalize_space(state.get("consultingReportUrl"))
-        or normalize_space(state.get("meetingReportUrl"))
         or normalize_space(state.get("learningConsultingFileName"))
     )
-    consult_issues = list(state.get("consultingIssues") or []) + list(state.get("meetingIssues") or [])
-    consult_summary = state.get("consultingSummary") or state.get("meetingSummary")
+    consult_issues = list(state.get("consultingIssues") or [])
+    consult_summary = state.get("consultingSummary")
     consult_usable_eval = has_consult_url and _notion_body_accessible(consult_issues, consult_summary, for_update=False)
     consult_usable_update = has_consult_url and _notion_body_accessible(consult_issues, consult_summary, for_update=True)
+
+    # Meeting (미팅보고서: URL 별도 추적 — 상담보고서와 독립 컴포넌트)
+    has_meeting_url = bool(normalize_space(state.get("meetingReportUrl")))
+    meeting_issues = list(state.get("meetingIssues") or [])
+    meeting_summary = state.get("meetingSummary")
+    meeting_usable_eval = has_meeting_url and _notion_body_accessible(meeting_issues, meeting_summary, for_update=False)
+    meeting_usable_update = has_meeting_url and _notion_body_accessible(meeting_issues, meeting_summary, for_update=True)
 
     # Internal review
     has_internal_url = bool(normalize_space(state.get("internalReviewUrl")))
@@ -1562,6 +1568,15 @@ def source_quality_from_state(state: dict[str, Any]) -> dict[str, Any]:
                 if not consult_usable_update else []
             ) + (["상담보고서 본문 미추출 — update 제외"] if consult_usable_eval and not consult_usable_update else []),
         },
+        "meeting": {
+            "present": has_meeting_url,
+            "usable_for_evaluation": meeting_usable_eval,
+            "usable_for_update": meeting_usable_update,
+            "issues": (
+                [i for i in meeting_issues if any(p in str(i) for p in _NOTION_BLOCK_PATTERNS)]
+                if not meeting_usable_update else []
+            ) + (["미팅보고서 본문 미추출 — update 제외"] if meeting_usable_eval and not meeting_usable_update else []),
+        },
         "internal_review": {
             "present": has_internal_url,
             "usable_for_evaluation": internal_usable_eval,
@@ -1587,11 +1602,15 @@ def learning_material_components(state: dict[str, Any]) -> dict[str, float]:
     (e.g. Notion body inaccessible, scan PDF, empty extra-info).  Downstream
     callers (learning_material_flags_from_components, learning_status_from_components)
     remain unchanged — they just see 0.0 instead of a positive weight.
+
+    meeting_report (0.10) is counted independently from consultation_report.
+    evaluation_ready requires flow_score AND (consultation OR meeting).
     """
     sq = source_quality_from_state(state)
     return {
         "flow_score_report": 0.35 if sq["flow_score"]["usable_for_update"] else 0.0,
         "consultation_report": 0.35 if sq["consultation"]["usable_for_update"] else 0.0,
+        "meeting_report": 0.10 if sq["meeting"]["usable_for_update"] else 0.0,
         "internal_review": 0.15 if sq["internal_review"]["usable_for_update"] else 0.0,
         "additional_sources": 0.05 if sq["additional"]["usable_for_update"] else 0.0,
     }
@@ -1603,6 +1622,7 @@ def _source_quality_flags_from_state(state: dict[str, Any]) -> dict[str, bool]:
     return {
         "flow_score_usable_for_update": sq["flow_score"]["usable_for_update"],
         "consultation_usable_for_update": sq["consultation"]["usable_for_update"],
+        "meeting_usable_for_update": sq["meeting"]["usable_for_update"],
         "internal_review_usable_for_update": sq["internal_review"]["usable_for_update"],
         "additional_usable_for_update": sq["additional"]["usable_for_update"],
     }
@@ -1618,11 +1638,13 @@ def _merged_components_from_sources(merged_sources: dict[str, Any]) -> dict[str,
     # quality flag 우선 — 없으면 legacy URL 존재 기준이지만 update weight=0
     flow_usable = merged_sources.get("flow_score_usable_for_update", False)
     consult_usable = merged_sources.get("consultation_usable_for_update", False)
+    meeting_usable = merged_sources.get("meeting_usable_for_update", False)
     internal_usable = merged_sources.get("internal_review_usable_for_update", False)
     additional_usable = merged_sources.get("additional_usable_for_update", False)
     return {
         "flow_score_report": 0.35 if flow_usable else 0.0,
         "consultation_report": 0.35 if consult_usable else 0.0,
+        "meeting_report": 0.10 if meeting_usable else 0.0,
         "internal_review": 0.15 if internal_usable else 0.0,
         "additional_sources": 0.05 if additional_usable else 0.0,
     }
@@ -1640,6 +1662,7 @@ def learning_material_flags_from_components(components: dict[str, float]) -> dic
     return {
         "has_flow_score_report": float(components.get("flow_score_report", 0) or 0) > 0,
         "has_consultation_report": float(components.get("consultation_report", 0) or 0) > 0,
+        "has_meeting_report": float(components.get("meeting_report", 0) or 0) > 0,
         "has_internal_review": float(components.get("internal_review", 0) or 0) > 0,
         "has_additional_sources": float(components.get("additional_sources", 0) or 0) > 0,
     }
@@ -1647,7 +1670,9 @@ def learning_material_flags_from_components(components: dict[str, float]) -> dic
 
 def learning_status_from_components(components: dict[str, float]) -> dict[str, Any]:
     flags = learning_material_flags_from_components(components)
-    evaluation_ready = flags["has_flow_score_report"] and flags["has_consultation_report"]
+    # evaluation_ready: flow_score AND (consultation OR meeting) — meeting은 consultation의 보완재
+    has_report_coverage = flags["has_consultation_report"] or flags["has_meeting_report"]
+    evaluation_ready = flags["has_flow_score_report"] and has_report_coverage
     update_eligible = evaluation_ready and flags["has_internal_review"]
     evaluation_weight = round(sum(components.values()), 2) if evaluation_ready else 0.0
     update_weight = round(sum(components.values()), 2) if update_eligible else 0.0
@@ -2220,6 +2245,12 @@ def record_live_learning_case(
 
 def infer_engine_traits(engine_version: str) -> list[str]:
     normalized = str(engine_version or "")
+    if "local.learning" in normalized:
+        return [
+            "업로드된 FlowScore와 Notion 자동조회 결과를 즉시 실시간 평가에 반영합니다.",
+            "상담·미팅·심사보고서 누락 시 평가 취소 또는 FlowScore 단독 평가 진행을 선택합니다.",
+            "자료 품질과 파싱 성공 여부를 분리해 평가 반영 상태를 표시합니다.",
+        ]
     if "1.16.01" in normalized:
         return [
             "전시회 URL과 기업 웹주소 URL을 함께 읽어 핵심 정보를 자동 추출합니다.",
@@ -2838,10 +2869,22 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
     buyer_grade_score = buyer_signal_score(buyer_name)
     consultation_validation_summary = state.get("consultingValidationSummary") or state.get("meetingValidationSummary")
     data_support_bonus = 8.0 if consultation_validation_summary else 0.0
+    # meeting_support_bonus: meetingSummary/meetingCrossChecks 키워드 분석 — 매출처 결제 관련 신호 추출
+    _meeting_text = " ".join([
+        str(state.get("meetingSummary") or ""),
+        str(state.get("meetingCrossChecks") or ""),
+    ])
+    _payment_keywords = ["결제", "입금", "정산", "대금", "지급", "수령", "거래처", "수금", "매출처"]
+    _settlement_keywords = ["정산주기", "결제조건", "지급조건", "어음", "선불", "후불", "월말"]
+    _invoice_keywords = ["세금계산서", "계산서", "발행", "인수", "승인", "매입확인", "거래확인"]
+    _meeting_payment_score = 3.0 if any(k in _meeting_text for k in _payment_keywords) else 0.0
+    _meeting_settlement_score = 3.0 if any(k in _meeting_text for k in _settlement_keywords) else 0.0
+    _meeting_invoice_score = 3.0 if any(k in _meeting_text for k in _invoice_keywords) else 0.0
+    meeting_support_bonus = min(6.0, _meeting_payment_score + _meeting_settlement_score + _meeting_invoice_score) if _meeting_text.strip() else 0.0
     internal_support_bonus = 6.0 if state.get("internalReviewValidationSummary") else 0.0
     file_support_bonus = 5.0 if state.get("supportingDocumentSummary") else 0.0
     extra_support_bonus = 4.0 if state.get("additionalInfoSummary") else 0.0
-    structure_bonus = data_support_bonus + internal_support_bonus + file_support_bonus + extra_support_bonus
+    structure_bonus = data_support_bonus + meeting_support_bonus + internal_support_bonus + file_support_bonus + extra_support_bonus
 
     ccc_days = 75.0 if industry_profile == "manufacturing" else 45.0 if industry_profile == "service_it" else 60.0
     tenor_fit_score = 80.0 if requested_tenor_days >= ccc_days else 45.0
@@ -3008,9 +3051,24 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
                     "buyer_registry_alignment": 60.0 if buyer_name == "매출처 확인 필요" else 75.0,
                 },
                 "payment": {
-                    "payment_history": 55.0 if buyer_name == "매출처 확인 필요" else 72.0,
-                    "settlement_stability": 58.0 if buyer_name == "매출처 확인 필요" else 70.0,
-                    "invoice_acceptance_clarity": 58.0 if not consultation_validation_summary else 72.0,
+                    # payment_history: 미팅 결제 키워드 확인 시 상향 보정
+                    "payment_history": (
+                        55.0 if buyer_name == "매출처 확인 필요"
+                        else 76.0 if _meeting_payment_score > 0
+                        else 72.0
+                    ),
+                    # settlement_stability: 정산주기/조건 미팅 내용으로 세분화
+                    "settlement_stability": (
+                        58.0 if buyer_name == "매출처 확인 필요"
+                        else 74.0 if _meeting_settlement_score > 0
+                        else 70.0
+                    ),
+                    # invoice_acceptance_clarity: 상담/미팅 세금계산서 확인 반영
+                    "invoice_acceptance_clarity": (
+                        58.0 if not consultation_validation_summary and not _meeting_invoice_score
+                        else 76.0 if _meeting_invoice_score > 0
+                        else 72.0
+                    ),
                     "dispute_setoff_risk": 52.0 if buyer_name == "매출처 확인 필요" else 65.0,
                     "concentration_risk": 50.0 if buyer_name == "매출처 확인 필요" else 62.0,
                     "delay_pattern": 52.0 if buyer_name == "매출처 확인 필요" else 68.0,
@@ -3199,8 +3257,13 @@ def health() -> dict[str, Any]:
 
 @app.get("/api/engine-presets")
 def engine_presets() -> dict[str, Any]:
+    registry = load_dashboard_registry()
+    current_version = normalize_engine_version(registry.get("current_version") or ENGINE_PRESETS["latest"]["engine_version"])
+    latest = dict(ENGINE_PRESETS["latest"])
+    latest["label"] = f"최신 엔진 {current_version}"
+    latest["engine_version"] = current_version
     return {
-        "items": list(ENGINE_PRESETS.values()),
+        "items": [latest, ENGINE_PRESETS["previous"], ENGINE_PRESETS["base"]],
     }
 
 

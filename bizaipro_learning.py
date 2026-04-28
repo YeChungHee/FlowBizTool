@@ -98,13 +98,16 @@ def compute_learning_weight(input_data: dict[str, Any]) -> dict[str, Any]:
     """Compute learning weight aligned with the web update_eligible criteria (FBU-VAL-0006 F3).
 
     Previously: qualified = flow_score AND consultation  (CLI only)
-    Now:        evaluation_ready = flow_score AND consultation
+    Now:        evaluation_ready = flow_score AND (consultation OR meeting)
                 update_eligible  = evaluation_ready AND internal_review  (same as web)
                 qualified        = update_eligible  (unified definition)
+
+    meeting_report (0.10) is an independent complement to consultation_report.
     """
     context = _learning_context(input_data)
     flow_score = bool(context.get("flow_score_report_submitted", False))
     consultation = bool(context.get("consultation_report_submitted", False))
+    meeting_report = bool(context.get("meeting_report_submitted", False))
     internal_review = bool(context.get("internal_review_link"))
     additional_sources = context.get("additional_sources", [])
     additional_count = len(additional_sources) if isinstance(additional_sources, list) else 0
@@ -112,11 +115,14 @@ def compute_learning_weight(input_data: dict[str, Any]) -> dict[str, Any]:
     components = {
         "flow_score_report": 0.35 if flow_score else 0.0,
         "consultation_report": 0.35 if consultation else 0.0,
+        "meeting_report": 0.10 if meeting_report else 0.0,
         "internal_review": 0.15 if internal_review else 0.0,
         "additional_sources": min(additional_count, 3) * 0.05,
     }
     total_weight = round(sum(components.values()), 2)
-    evaluation_ready = flow_score and consultation
+    # evaluation_ready: meeting이 consultation을 보완 — 둘 중 하나만 있어도 통과
+    has_report_coverage = consultation or meeting_report
+    evaluation_ready = flow_score and has_report_coverage
     update_eligible = evaluation_ready and internal_review
     return {
         "evaluation_ready": evaluation_ready,

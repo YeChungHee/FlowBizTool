@@ -1,8 +1,8 @@
-const BIZAIPRO_STORAGE_KEY = "bizaipro.currentState.v2";
+const BIZAIPRO_STORAGE_KEY = "bizaipro.currentState.v3";
 
 const BIZAIPRO_DEFAULT_STATE = {
   mode: "exhibition",
-  engineVersion: "최신 엔진 v.1.16.01",
+  engineVersion: "v.local.learning",
   companyName: "케이씨엔씨(주)",
   shortName: "KCNC",
   representativeName: "김형주",
@@ -122,8 +122,8 @@ const BIZAIPRO_DEFAULT_STATE = {
 const BIZAIPRO_ENGINE_PRESETS = {
   latest: {
     key: "latest",
-    label: "최신 엔진 v.1.16.01",
-    engineVersion: "v.1.16.01",
+    label: "최신 엔진 v.local.learning",
+    engineVersion: "v.local.learning",
     proposalPriority: "중상",
     currentProposalState: "추가 확인 필요",
     heroNextAction: "제안서 발송 후 15분 미팅 제안",
@@ -138,9 +138,9 @@ const BIZAIPRO_ENGINE_PRESETS = {
     updateStatus: "생성됨",
     learningWeight: "0.85",
     changeNotes: [
-      "재무 필터는 BB+를 유지하되, 전시회/홈페이지 기반 메시지 설계를 더 강화했습니다.",
-      "추천 첫 액션을 '제안서 발송 후 15분 미팅 제안'으로 구체화했습니다.",
-      "결제유예기간은 60일 기준 1~2개월 우선 검토로 고정했습니다.",
+      "업로드된 FlowScore와 Notion 자동조회 결과를 실시간 평가에 반영합니다.",
+      "상담·미팅·심사보고서 누락 시 평가 취소 또는 FlowScore 단독 평가 진행을 선택합니다.",
+      "자료 품질과 파싱 성공 여부를 평가 반영 기준으로 분리합니다.",
     ],
   },
   previous: {
@@ -205,7 +205,7 @@ const BIZAIPRO_SALESPEOPLE = [
 
 const BIZAIPRO_DEFAULT_DASHBOARD = {
   engine_name: "BizAiPro",
-  current_version: "v.1.16.01",
+  current_version: "v.local.learning",
   learning_cards: {
     company_reports: 0,
     consultation_reports: 0,
@@ -217,7 +217,7 @@ const BIZAIPRO_DEFAULT_DASHBOARD = {
     "평가 결과에서 제안서와 이메일 초안까지 한 흐름으로 연결합니다.",
   ],
   latest_update: {
-    version: "v.1.16.01",
+    version: "v.local.learning",
     qualified_cases: 0,
     weighted_total: 0,
     update_generated: false,
@@ -1333,6 +1333,7 @@ function renderTopNav(activeKey) {
     ["proposal", "제안서 생성", "bizaipro_proposal_generator.html"],
     ["email", "이메일 생성", "bizaipro_email_generator.html"],
     ["compare", "엔진 버전 비교", "bizaipro_engine_compare.html"],
+    ["changelog", "업데이트 이력", "bizaipro_changelog.html"],
   ];
   nav.innerHTML = `
     <div class="top-brand-stack">

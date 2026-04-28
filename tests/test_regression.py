@@ -753,24 +753,30 @@ class TestNotionWarningIndependence:
         assert "missingNotionReports" not in dq_payload
 
 
-# ── T19: 상담+미팅 모두 found_and_parsed → consultation weight 0.35 상한 유지 ─
+# ── T19: meeting은 consultation과 독립 SourceQuality — 각 가중치 상한 유지 ────
 class TestConsultationWeightCap:
-    """FBU-VAL-0010 §6 규칙 7: 상담보고서와 미팅보고서가 모두 파싱되어도
-    consultation component는 0.35 상한을 유지한다 (미팅은 상담의 subtype)."""
+    """FBU-VAL-0010 §6 갱신: meeting은 consultation의 subtype이 아니라
+    독립 SourceQuality 키('meeting')와 독립 컴포넌트(meeting_report 0.10)로 분리.
+    consultation_report는 0.35, meeting_report는 0.10 고정 상한."""
 
-    def test_meeting_only_gives_consultation_weight(self):
-        """미팅보고서 summary만 있어도 consultation usable=True."""
+    def test_meeting_url_gives_meeting_source_quality_not_consultation(self):
+        """meetingReportUrl 있으면 meeting.present=True, consultation.present=False."""
         state = {
             "meetingReportUrl": "https://www.notion.so/meeting-page-id",
             "meetingSummary": "미팅 내용 요약: 삼성전자 담당자 미팅 완료",
         }
         sq = source_quality_from_state(state)
-        assert sq["consultation"]["usable_for_update"] is True, (
-            "meetingSummary → consultation.usable_for_update=True (subtype 처리)"
+        assert sq["meeting"]["present"] is True, "meetingReportUrl → meeting.present=True"
+        assert sq["meeting"]["usable_for_update"] is True, (
+            "meetingSummary 있으면 meeting.usable_for_update=True"
+        )
+        assert sq["consultation"]["present"] is False, (
+            "consultingReportUrl 없으면 consultation.present=False (독립 키)"
         )
 
-    def test_both_consulting_and_meeting_cap_at_0_35(self):
-        """상담+미팅 모두 있어도 consultation_report 가중치는 0.35 초과 안 됨."""
+    def test_both_consulting_and_meeting_independent_components(self):
+        """상담+미팅 모두 있으면 consultation_report=0.35, meeting_report=0.10 독립."""
+        from app import learning_material_components
         state = {
             "consultingReportUrl": "https://www.notion.so/consult",
             "consultingSummary": "상담보고서 요약",
@@ -781,22 +787,25 @@ class TestConsultationWeightCap:
             "internalReviewUrl": "https://www.notion.so/internal",
             "internalReviewSummary": "심사보고서 요약",
         }
-        sq = source_quality_from_state(state)
-        components = sq.get("components") or {}
-        consult_weight = float(components.get("consultation_report", 0) or 0)
-        # components가 source_quality_from_state에 포함된 경우
-        if consult_weight > 0:
-            assert consult_weight <= 0.35, (
-                f"상담+미팅 가중치 {consult_weight:.2f}이 0.35 상한 초과"
-            )
+        components = learning_material_components(state)
+        assert components["consultation_report"] == pytest.approx(0.35), (
+            "consultation_report 가중치는 정확히 0.35"
+        )
+        assert components["meeting_report"] == pytest.approx(0.10), (
+            "meeting_report 가중치는 정확히 0.10"
+        )
+        assert components["consultation_report"] + components["meeting_report"] == pytest.approx(0.45), (
+            "상담+미팅 합산 상한 0.45"
+        )
 
     def test_merged_components_consultation_cap(self):
-        """_merged_components_from_sources: 상담+미팅 플래그 모두 True여도 0.35 이하."""
+        """_merged_components_from_sources: consultation_report=0.35, meeting_report=0.10."""
         sources = {
             "flow_score_file_name": "report.pdf",
             "flow_score_usable_for_update": True,
             "consulting_report_url": "https://notion.so/consult",
             "consultation_usable_for_update": True,
+            "meeting_usable_for_update": True,
             "internal_review_url": "https://notion.so/internal",
             "internal_review_usable_for_update": True,
             "additional_usable_for_update": False,
@@ -804,6 +813,9 @@ class TestConsultationWeightCap:
         components = _merged_components_from_sources(sources)
         assert components["consultation_report"] == pytest.approx(0.35), (
             "consultation_report 가중치는 정확히 0.35이어야 함"
+        )
+        assert components["meeting_report"] == pytest.approx(0.10), (
+            "meeting_report 가중치는 정확히 0.10이어야 함"
         )
 
 
@@ -1062,4 +1074,103 @@ class TestNotionErrorGateAndGuards:
         correct_status = {"consultation": "found_and_parsed", "meeting": "not_found", "internal_review": "found_and_parsed"}
         assert all(isinstance(v, str) for v in correct_status.values()), (
             "수정 후 notionLookupStatus 값은 모두 string"
+        )
+
+
+# ── T22: 미팅보고서 독립 학습 컴포넌트 (meeting_report 0.10) ─────────────────
+class TestMeetingReportLearning:
+    """미팅보고서가 consultation과 독립된 SourceQuality + 가중치 컴포넌트로
+    처리됨을 검증한다 (task #30~#33).
+
+    T22-1  meeting 별도 SourceQuality — consultingReportUrl 없이 meetingReportUrl만 있어도
+           meeting.present=True, consultation.present=False
+    T22-2  meeting_report 0.10 가중치 — learning_material_components 반환값 확인
+    T22-3  미팅 콘텐츠 신호 추출 — meetingSummary 결제 키워드 → payment 점수 상향
+    T22-4  합산 상한 0.45 — flow(0.35) + meeting(0.10) (consultation 없이)
+    """
+
+    # ── T22-1 ──────────────────────────────────────────────────────────────────
+    def test_meeting_separate_source_quality(self):
+        """meetingReportUrl 있으면 meeting.present=True, consultation.present=False."""
+        state = {
+            "meetingReportUrl": "https://www.notion.so/meeting-abc123",
+            "meetingSummary": "2026-04 미팅: 대표자 면담 완료, 결제 조건 확인",
+        }
+        sq = source_quality_from_state(state)
+        assert sq["meeting"]["present"] is True, "meetingReportUrl → meeting.present=True"
+        assert sq["meeting"]["usable_for_update"] is True, (
+            "meetingSummary 있으면 meeting.usable_for_update=True"
+        )
+        assert sq["consultation"]["present"] is False, (
+            "consultingReportUrl 없으면 consultation.present=False"
+        )
+        assert sq["consultation"]["usable_for_update"] is False, (
+            "consultingReportUrl 없으면 consultation.usable_for_update=False"
+        )
+
+    # ── T22-2 ──────────────────────────────────────────────────────────────────
+    def test_meeting_report_component_weight_0_10(self):
+        """meeting_report 가중치 = 0.10, consultation 없어도 독립 반영."""
+        from app import learning_material_components
+        state = {
+            "meetingReportUrl": "https://www.notion.so/meeting-abc123",
+            "meetingSummary": "미팅보고서 요약 내용",
+            "learningFlowScoreFileName": "flowscore.pdf",
+            "reportType": "flowscore_report",
+        }
+        components = learning_material_components(state)
+        assert components.get("meeting_report") == pytest.approx(0.10), (
+            "meeting_report 가중치는 0.10이어야 함"
+        )
+        assert components.get("consultation_report") == pytest.approx(0.0), (
+            "consultingReportUrl 없으면 consultation_report=0.0"
+        )
+
+    # ── T22-3 ──────────────────────────────────────────────────────────────────
+    def test_meeting_content_signal_payment_keywords(self):
+        """meetingSummary 결제 키워드 → build_learning_evaluation_payload buyer.payment 점수 상향."""
+        from app import build_learning_evaluation_payload
+        state_no_meeting = {
+            "companyName": "테스트기업",
+            "buyerName": "삼성전자",
+            "annualSales": "5000000000",
+        }
+        state_with_meeting = {
+            **state_no_meeting,
+            "meetingSummary": "매출처 결제 조건 확인, 정산주기 30일, 세금계산서 발행 완료",
+        }
+        payload_no = build_learning_evaluation_payload(state_no_meeting)
+        payload_yes = build_learning_evaluation_payload(state_with_meeting)
+        payment_no = payload_no["buyer"]["scores"]["payment"]
+        payment_yes = payload_yes["buyer"]["scores"]["payment"]
+        # 결제 키워드 있으면 payment_history, settlement_stability, invoice_acceptance_clarity 상향
+        assert payment_yes["payment_history"] >= payment_no["payment_history"], (
+            "결제 키워드 있으면 payment_history 동일하거나 상향"
+        )
+        assert payment_yes["invoice_acceptance_clarity"] >= payment_no["invoice_acceptance_clarity"], (
+            "세금계산서 키워드 있으면 invoice_acceptance_clarity 동일하거나 상향"
+        )
+
+    # ── T22-4 ──────────────────────────────────────────────────────────────────
+    def test_flow_and_meeting_only_total_weight_0_45(self):
+        """flow(0.35) + meeting(0.10) = 0.45 — consultation 없이도 가능한 최대 학습 가중치."""
+        from app import learning_material_components, learning_status_from_components
+        state = {
+            "meetingReportUrl": "https://www.notion.so/meeting-xyz",
+            "meetingSummary": "미팅보고서 요약",
+            "learningFlowScoreFileName": "flowscore.pdf",
+            "reportType": "flowscore_report",
+        }
+        components = learning_material_components(state)
+        total = round(
+            components.get("flow_score_report", 0.0)
+            + components.get("meeting_report", 0.0),
+            2,
+        )
+        assert total == pytest.approx(0.45), (
+            f"flow(0.35) + meeting(0.10) = 0.45이어야 함 (실제: {total})"
+        )
+        status = learning_status_from_components(components)
+        assert status["evaluation_ready"] is True, (
+            "flow + meeting 있으면 evaluation_ready=True (consultation 없어도)"
         )
