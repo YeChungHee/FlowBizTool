@@ -171,7 +171,29 @@ def parse_flowscore_report_text(raw_text: str, source_file: str | None = None) -
     score_match = re.search(r"종합점수\s*([0-9.]+)\s*/\s*1,000", compact)
     pd_match = re.search(r"부도확률\s*\(PD\)\s*([0-9.]+)%", compact)
     discount_match = re.search(r"연간적용할인율\s*([0-9.]+)%", compact)
-    monthly_limit_match = re.search(r"월간적정신용한도\s*([0-9.]+억원)", compact)
+    monthly_limit_match = find_first(
+        [
+            r"월간\s*적정\s*신용한도\s*[:：]?\s*([0-9][0-9,]*원)",
+            r"월간\s*적정\s*신용한도\s*[:：]?\s*([0-9.]+억원)",
+            r"월간적정신용한도\s*([0-9][0-9,]*원)",
+            r"월간적정신용한도\s*([0-9.]+억원)",
+            r"추천\s*신용한도\s*[:：]?\s*([0-9][0-9,]*원)",
+            r"추천\s*신용한도\s*[:：]?\s*([0-9.]+억원)",
+            r"추천신용한도\s*([0-9][0-9,]*원)",
+            r"추천신용한도\s*([0-9.]+억원)",
+        ],
+        raw_text,
+    )
+    if not monthly_limit_match:
+        monthly_limit_match = find_first(
+            [
+                r"월간적정신용한도\s*([0-9][0-9,]*원)",
+                r"월간적정신용한도\s*([0-9.]+억원)",
+                r"추천신용한도\s*([0-9][0-9,]*원)",
+                r"추천신용한도\s*([0-9.]+억원)",
+            ],
+            compact,
+        )
     eval_date_match = re.search(r"평가일(?:자)?\s*:\s*([0-9.-]+)", compact)
     if not eval_date_match:
         eval_date_match = re.search(r"평가일(?:자)?\s*([0-9.-]+)", compact)
@@ -216,8 +238,11 @@ def parse_flowscore_report_text(raw_text: str, source_file: str | None = None) -
 
     financial_summary = parse_table_financial_summary(raw_text)
 
-    limit_match = re.search(
-        r"추천신용한도\s*([0-9.]+억원).*?한도범위\s*:\s*([0-9.]+억원)\s*~\s*([0-9.]+억원).*?한도등급\s*([A-Z])",
+    limit_match = find_first(
+        [
+            r"추천\s*신용한도\s*([0-9.]+억원|[0-9][0-9,]*원).*?한도범위\s*[:：]?\s*([0-9.]+억원|[0-9][0-9,]*원)\s*[~\-]\s*([0-9.]+억원|[0-9][0-9,]*원).*?한도등급\s*([A-Z])",
+            r"추천신용한도\s*([0-9.]+억원|[0-9][0-9,]*원).*?한도범위\s*[:：]?\s*([0-9.]+억원|[0-9][0-9,]*원)\s*[~\-]\s*([0-9.]+억원|[0-9][0-9,]*원).*?한도등급\s*([A-Z])",
+        ],
         compact,
     )
 

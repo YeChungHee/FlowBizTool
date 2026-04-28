@@ -32,11 +32,19 @@
         </aside>
       </header>
 
+      <!-- notion_partial_evaluation_warning 배너 (data_quality_warning과 독립적으로 표시) -->
+      <div id="notion-partial-warning-banner" style="display:none;" class="notion-partial-banner">
+        <span class="notion-partial-banner-icon">⚠</span>
+        <div>
+          <strong>일부 보고서가 평가에 미반영되었습니다</strong>
+          <p id="notion-partial-warning-text"></p>
+        </div>
+      </div>
+
       <div class="layout-3col">
         <aside class="stack">
           <section class="panel">
             <h2>분석결과 엔진 선택</h2>
-            <p class="helper">저장된 엔진 버전을 고르거나 `web_context.json`을 불러와 현재 결과를 덮어쓸 수 있습니다.</p>
             <div class="field">
               <label>현재 적용 엔진 버전</label>
               <div id="engine-version-display" class="fake-input"></div>
@@ -80,9 +88,20 @@
             <p class="helper" id="overview-summary"></p>
             <div class="kpi-grid" id="primary-kpis"></div>
             <div class="kpi-grid" id="secondary-kpis" style="margin-top: 12px;"></div>
+            <div
+              class="kpi-grid"
+              id="limit-breakdown-kpis"
+              style="margin-top: 12px; grid-template-columns: repeat(3, minmax(0, 1fr));"
+            ></div>
             <div id="priority-note" class="note-text" style="margin-top: 10px;">
               [참고] 전체 기준: 낮음·중 = 주의 / 중상 = 희망 / 상·최상 = 가능
             </div>
+            <div class="detail-toggle-row">
+              <button id="detail-toggle" type="button" class="detail-toggle-btn">평가표 상세보기</button>
+            </div>
+            <section id="detail-report" class="detail-report-panel" hidden>
+              <div id="detail-report-content"></div>
+            </section>
           </section>
 
           <section class="layout-2col-wide">
@@ -167,10 +186,253 @@
       </div>
     </div>
 
+    <style>
+      /* notion_partial_evaluation_warning 배너 스타일 (data_quality_warning과 독립) */
+      .notion-partial-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #fffbeb;
+        border: 1px solid #f59e0b;
+        border-left: 4px solid #f59e0b;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 0 0 16px 0;
+        color: #78350f;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .notion-partial-banner-icon {
+        font-size: 18px;
+        line-height: 1.4;
+        flex-shrink: 0;
+      }
+      .notion-partial-banner strong {
+        display: block;
+        font-size: 13px;
+      }
+      .notion-partial-banner p {
+        margin: 4px 0 0;
+        color: #92400e;
+        font-size: 12px;
+      }
+    </style>
     <script src="./bizaipro_shared.js"></script>
     <script>
       const shared = window.BizAiProShared;
       shared.renderTopNav("evaluation");
+      let currentDetailReport = null;
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function formatScoreDisplay(value) {
+        const numeric = Number(value);
+        if (Number.isNaN(numeric)) return "확인 필요";
+        return numeric.toFixed(2);
+      }
+
+      function renderScoreTable(section) {
+        const rows = (section.rows || [])
+          .map(
+            (row) => `
+              <tr>
+                <td>${escapeHtml(row.label)}</td>
+                <td>${escapeHtml(formatScoreDisplay(row.score))}</td>
+                <td>${escapeHtml(row.weight_text)}</td>
+                <td>${escapeHtml(formatScoreDisplay(row.contribution))}</td>
+              </tr>
+            `
+          )
+          .join("");
+
+        return `
+          <article class="detail-report-card">
+            <div class="detail-report-header">
+              <div>
+                <h3>${escapeHtml(section.title)}</h3>
+                <p>점수, 가중치, 기여도를 한 번에 확인합니다.</p>
+              </div>
+              <div class="detail-report-score">
+                <span class="detail-report-score-value">${escapeHtml(formatScoreDisplay(section.score))}</span>
+                <span class="detail-report-score-meta">${escapeHtml(section.grade || "등급 확인 필요")}</span>
+              </div>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>평가 항목</th>
+                    <th>점수</th>
+                    <th>가중치</th>
+                    <th>기여도</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderLimitTable(limitSection) {
+        const rows = (limitSection.rows || [])
+          .map(
+            (row) => `
+              <tr>
+                <td>${escapeHtml(row.label)}</td>
+                <td>${escapeHtml(row.factor_text)}</td>
+                <td>${escapeHtml(row.result_text)}</td>
+                <td>${escapeHtml(row.note)}</td>
+              </tr>
+            `
+          )
+          .join("");
+
+        return `
+          <article class="detail-report-card">
+            <div class="detail-report-header">
+              <div>
+                <h3>한도 산정표</h3>
+                <p>기준 월간 적정 한도부터 엔진 보정, 학습모드 운영 한도까지 단계별로 분리합니다.</p>
+              </div>
+            </div>
+            <div class="detail-summary-grid">
+              <div class="detail-summary-chip">
+                <span class="label">기준 월간 적정 한도</span>
+                <strong>${escapeHtml(limitSection.base_monthly_limit_text || "확인 필요")}</strong>
+              </div>
+              <div class="detail-summary-chip">
+                <span class="label">엔진 보정 한도</span>
+                <strong>${escapeHtml(limitSection.engine_adjusted_limit_text || "확인 필요")}</strong>
+              </div>
+              <div class="detail-summary-chip">
+                <span class="label">학습모드 운영 한도</span>
+                <strong>${escapeHtml(limitSection.learning_operational_limit_text || "확인 필요")}</strong>
+              </div>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>단계</th>
+                    <th>배수</th>
+                    <th>산출 금액</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderTenorMarginTable(detailReport) {
+        const rows = (detailReport.tenor_margin_rows || [])
+          .map(
+            (row) => `
+              <tr class="${row.selected ? "selected-row" : ""}">
+                <td>${escapeHtml(row.tenor_label)}</td>
+                <td>${escapeHtml(row.commercial_rate_text)}</td>
+                <td>${escapeHtml(row.compliant_rate_text)}</td>
+                <td>${escapeHtml(row.note)}</td>
+              </tr>
+            `
+          )
+          .join("");
+
+        return `
+          <article class="detail-report-card">
+            <div class="detail-report-header">
+              <div>
+                <h3>결제유예기간별 마진율 비교표</h3>
+                <p>현재 제안된 ${escapeHtml(detailReport.current_tenor_text || "결제기간 확인 필요")}를 중심으로 1~3개월 마진율을 비교합니다.</p>
+              </div>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>결제유예기간</th>
+                    <th>예상 마진율</th>
+                    <th>준법 기준 마진율</th>
+                    <th>비고</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderNarrativeCards(detailReport) {
+        const strengths = (detailReport.strengths || [])
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("");
+        const weaknesses = (detailReport.weaknesses || [])
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("");
+        const riskNotes = (detailReport.risk_notes || [])
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("");
+
+        return `
+          <div class="detail-report-narratives">
+            <article class="detail-report-card">
+              <h3>강점 포인트</h3>
+              <ul>${strengths || "<li>확인 필요</li>"}</ul>
+            </article>
+            <article class="detail-report-card">
+              <h3>약점 포인트</h3>
+              <ul>${weaknesses || "<li>확인 필요</li>"}</ul>
+            </article>
+            <article class="detail-report-card">
+              <h3>리스크 및 체크포인트</h3>
+              <ul>${riskNotes || "<li>확인 필요</li>"}</ul>
+            </article>
+          </div>
+        `;
+      }
+
+      function renderDetailReport(detailReport) {
+        const toggle = document.getElementById("detail-toggle");
+        const panel = document.getElementById("detail-report");
+        const content = document.getElementById("detail-report-content");
+        if (!detailReport || !detailReport.score_sections) {
+          toggle.hidden = true;
+          panel.hidden = true;
+          content.innerHTML = "";
+          return;
+        }
+
+        toggle.hidden = false;
+        if (!toggle.dataset.bound) {
+          toggle.dataset.bound = "true";
+          toggle.addEventListener("click", () => {
+            const expanded = toggle.dataset.expanded === "true";
+            toggle.dataset.expanded = expanded ? "false" : "true";
+            toggle.textContent = expanded ? "평가표 상세보기" : "평가표 접기";
+            panel.hidden = expanded;
+          });
+        }
+
+        content.innerHTML = `
+          <div class="detail-report-stack">
+            ${(detailReport.score_sections || []).map(renderScoreTable).join("")}
+            ${renderLimitTable(detailReport.limit_section || {})}
+            ${renderTenorMarginTable(detailReport)}
+            ${renderNarrativeCards(detailReport)}
+          </div>
+        `;
+      }
 
       function renderPriorityCard(state) {
         return `
@@ -185,6 +447,7 @@
       function renderKpiCards(state) {
         const primary = document.getElementById("primary-kpis");
         const secondary = document.getElementById("secondary-kpis");
+        const limitBreakdown = document.getElementById("limit-breakdown-kpis");
         primary.innerHTML = `
           <div class="kpi-card">
             <div class="label">${state.recentRevenueLabel}</div>
@@ -220,6 +483,21 @@
             <div class="value compact">${state.nextAction}</div>
           </div>
         `;
+
+        limitBreakdown.innerHTML = `
+          <div class="kpi-card">
+            <div class="label">${state.baseMonthlyLimitLabel || "기준 월간 적정 한도"}</div>
+            <div class="value small">${state.baseMonthlyLimitValue || "확인 필요"}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">${state.engineAdjustedLimitLabel || "엔진 보정 한도"}</div>
+            <div class="value small">${state.engineAdjustedLimitValue || state.estimatedLimitValue}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="label">${state.learningOperationalLimitLabel || "학습모드 운영 한도(주간 1회 기준)"}</div>
+            <div class="value small">${state.learningOperationalLimitValue || "확인 필요"}</div>
+          </div>
+        `;
       }
 
       function renderChangeView(state) {
@@ -234,7 +512,7 @@
         document.getElementById("compare-change-list").innerHTML = changes.map((item) => `<li>${item}</li>`).join("");
       }
 
-      function renderPage(state) {
+      function renderPage(state, detailReport) {
         document.getElementById("engine-version-display").textContent = shared.formatEngineVersionLabel(state.engineVersion);
         document.getElementById("hero-pill").textContent = state.heroPillText;
         document.getElementById("hero-title").textContent = state.heroTitleText;
@@ -265,29 +543,56 @@
 
         renderKpiCards(state);
         renderChangeView(state);
+        renderDetailReport(detailReport);
+
+        // notion_partial_evaluation_warning 배너 (data_quality_warning과 독립 표시, FBU-VAL-0010 규칙 6)
+        const partialBanner = document.getElementById("notion-partial-warning-banner");
+        if (partialBanner) {
+          const missing = state.missingNotionReports || [];
+          if (missing.length > 0) {
+            const labelMap = { consultation: "상담보고서", meeting: "미팅보고서", internal_review: "심사보고서" };
+            const missingLabels = missing.map(t => labelMap[t] || t).join(", ");
+            document.getElementById("notion-partial-warning-text").textContent =
+              `${missingLabels}를 노션에서 확인하지 못했습니다. 해당 보고서 항목은 평가 점수에 반영되지 않았습니다.`;
+            partialBanner.style.display = "flex";
+          } else {
+            partialBanner.style.display = "none";
+          }
+        }
       }
 
       async function hydrateCaseStateIfNeeded() {
         const params = new URLSearchParams(window.location.search);
         const caseId = params.get("case_id");
         if (!caseId) {
-          return shared.getStoredState();
+          return {
+            state: shared.getStoredState(),
+            detailReport: null,
+          };
         }
         try {
           const payload = await shared.fetchLearningCase(caseId);
-          const state = shared.getStoredState();
-          Object.assign(state, payload.state_patch || {});
+          // case_id URL로 진입 시 stale localStorage 상태 오염 방지:
+          // getStoredState() 대신 getDefaultState()를 베이스로 사용
+          const state = Object.assign(shared.getDefaultState(), payload.state_patch || {});
           shared.saveState(state);
-          return shared.getStoredState();
+          return {
+            state: shared.getStoredState(),
+            detailReport: payload.detail_report || null,
+          };
         } catch (error) {
-          return shared.getStoredState();
+          return {
+            state: shared.getStoredState(),
+            detailReport: null,
+          };
         }
       }
 
-      hydrateCaseStateIfNeeded().then((currentState) => {
-        renderPage(currentState);
+      hydrateCaseStateIfNeeded().then(({ state, detailReport }) => {
+        currentDetailReport = detailReport;
+        renderPage(state, currentDetailReport);
         shared.setupEngineControls({
-          onUpdate: (state) => renderPage(state),
+          onUpdate: (nextState) => renderPage(nextState, currentDetailReport),
         });
       });
     </script>

@@ -19,7 +19,16 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pypdf import PdfReader
 
-from engine import FRAMEWORK_PATH, build_web_context, evaluate_flowpay_underwriting, load_json
+from engine import (
+    FRAMEWORK_PATH,
+    load_active_framework,
+    get_active_framework_meta,
+    build_web_context,
+    compute_margin_result,
+    evaluate_flowpay_underwriting,
+    load_json,
+    score_band_multiplier,
+)
 from report_extractors import parse_flowscore_report_pdf
 
 
@@ -31,6 +40,14 @@ LIVE_LEARNING_REGISTRY_PATH = DATA_DIR / "bizaipro_learning_registry.json"
 DOWNLOADS_DIR = Path.home() / "Downloads"
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_API_VERSION = "2022-06-28"
+NOTION_REPORTS_DB_ID = "20a16c59d686800c884cebb7816829ea"  # 플로우페이_보고서 관리
+
+# 자동조회 보고서 유형 → Notion select 값 매핑
+_NOTION_REPORT_TYPE_LABEL: dict[str, str] = {
+    "consultation": "상담보고서",
+    "meeting": "미팅보고서",
+    "internal_review": "심사보고서",
+}
 
 ENGINE_PRESETS = {
     "latest": {
@@ -187,6 +204,16 @@ def get_notion_api_token() -> str | None:
         value = os.getenv(key)
         if value:
             return value.strip()
+    local_keys_path = DATA_DIR / "api_keys.local.json"
+    if local_keys_path.exists():
+        try:
+            payload = json.loads(local_keys_path.read_text(encoding="utf-8"))
+        except Exception:
+            payload = {}
+        for key in ("NOTION_API_TOKEN", "NOTION_TOKEN", "notion_api_token", "notion_token"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
     return None
 
 
@@ -341,12 +368,21 @@ def extract_text_from_notion_block(block: dict[str, Any]) -> str:
 
 
 def fetch_notion_text_via_api(page_id: str, token: str, max_blocks: int = 200) -> tuple[str, str]:
+    """Notion 페이지 텍스트 추출.
+
+    DB 페이지(상담/심사/미팅보고서 등)는 내용이 속성(property) 필드에,
+    일반 페이지는 블록(block)에 저장되어 있으므로 두 경로를 항상 모두 추출해 합산한다.
+    - property_text : 제목·rich_text·select·status·date 등 DB 속성값
+    - block_text    : 본문 블록 재귀 탐색 결과
+    최종 반환값은 속성 텍스트를 먼저, 블록 텍스트를 뒤에 결합한다.
+    """
     page = notion_api_get(f"/pages/{page_id}", token)
     title = extract_title_from_notion_page_object(page)
     property_text = extract_text_from_notion_page_properties(page)
+
     queue: list[str] = [page_id]
     visited: set[str] = set()
-    texts: list[str] = []
+    block_texts: list[str] = []
     processed = 0
 
     while queue and processed < max_blocks:
@@ -356,7 +392,7 @@ def fetch_notion_text_via_api(page_id: str, token: str, max_blocks: int = 200) -
         visited.add(block_id)
         next_cursor: str | None = None
         while True:
-            params = {"page_size": 100}
+            params: dict[str, Any] = {"page_size": 100}
             if next_cursor:
                 params["start_cursor"] = next_cursor
             payload = notion_api_get(f"/blocks/{block_id}/children", token, params=params)
@@ -367,7 +403,7 @@ def fetch_notion_text_via_api(page_id: str, token: str, max_blocks: int = 200) -
                 processed += 1
                 text = extract_text_from_notion_block(block)
                 if text:
-                    texts.append(text)
+                    block_texts.append(text)
                 if block.get("has_children") and block.get("id"):
                     queue.append(str(block["id"]))
                 if processed >= max_blocks:
@@ -376,10 +412,9 @@ def fetch_notion_text_via_api(page_id: str, token: str, max_blocks: int = 200) -
                 break
             next_cursor = payload.get("next_cursor")
 
-    combined = normalize_space("\n".join(texts))
-    if combined:
-        return combined, title
-    return normalize_space(property_text), title
+    # 속성 텍스트 + 블록 텍스트 항상 합산 (어느 한쪽만 있어도 누락 없이 반환)
+    parts = [p for p in [property_text, normalize_space("\n".join(block_texts))] if p]
+    return normalize_space("\n".join(parts)), title
 
 
 def snapshot_has_meaningful_text(snapshot: dict[str, str]) -> bool:
@@ -405,6 +440,297 @@ def snapshot_has_meaningful_text(snapshot: dict[str, str]) -> bool:
 def sentence_split(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?다])\s+|\n+", text or "")
     return [normalize_space(part) for part in parts if normalize_space(part)]
+
+
+# ── Notion 자동조회 헬퍼 (FBU-VAL-0010 확정 규칙 적용) ────────────────────
+
+def _normalize_biz_num(biz_num: str | None) -> str:
+    """사업자번호 정규화: 하이픈·공백 제거 후 숫자만 반환."""
+    return re.sub(r"[^0-9]", "", biz_num or "")
+
+
+def _notion_title_company_name(props: dict[str, Any]) -> str:
+    """Notion 제목 property에서 회사명 파싱.
+
+    예: '심사보고서 : 해남참농가' → '해남참농가'
+    콜론이 없으면 제목 전체를 반환.
+    """
+    items = (
+        (props.get("제목") or props.get("Name") or {}).get("title") or []
+    )
+    raw = "".join(item.get("plain_text", "") for item in items).strip()
+    if ":" in raw:
+        return raw.split(":", 1)[1].strip()
+    return raw
+
+
+def _notion_query_report_db(
+    token: str,
+    report_type_label: str,
+    page_size: int = 50,
+) -> list[dict[str, Any]]:
+    """Notion 보고서 DB를 보고서 유형으로 필터링해 조회한다.
+
+    Raises:
+        PermissionError: HTTP 401/403 권한 오류 시.
+        Exception: 그 외 네트워크·파싱 오류 시.
+    """
+    payload: dict[str, Any] = {
+        "filter": {
+            "property": "보고서 유형",
+            "select": {"equals": report_type_label},
+        },
+        "sorts": [{"property": "상담(실사)일", "direction": "descending"}],
+        "page_size": page_size,
+    }
+    try:
+        resp = requests.post(
+            f"{NOTION_API_BASE}/databases/{NOTION_REPORTS_DB_ID}/query",
+            json=payload,
+            headers=notion_headers(token),
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return resp.json().get("results") or []
+    except requests.HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else 0
+        if status_code in (401, 403):
+            raise PermissionError("db_permission_error") from exc
+        raise
+
+
+def _match_notion_page(
+    pages: list[dict[str, Any]],
+    company_name: str,
+    business_number: str | None,
+) -> tuple[str | None, list[dict[str, Any]]]:
+    """페이지 목록에서 회사명·사업자번호로 최적 1건을 찾는다.
+
+    매칭 우선순위 (FBU-VAL-0010):
+      1. 사업자번호 exact match (하이픈 제거 후)
+      2. 회사명 exact match (canonical_company_token 정규화 후)
+      3. 회사명 contains fallback
+
+    Returns:
+        (page_id, [])           - 명확히 1건 매칭
+        (None, candidates)      - 복수 매칭 → ambiguous
+        (None, [])              - 매칭 없음 → not_found
+    """
+    norm_biz = _normalize_biz_num(business_number)
+    clean_name = canonical_company_token(company_name or "")
+
+    # 1순위: 사업자번호 exact
+    if norm_biz:
+        for page in pages:
+            props = page.get("properties") or {}
+            biz_prop = (props.get("사업자번호") or {}).get("rich_text") or []
+            page_biz = _normalize_biz_num(
+                "".join(item.get("plain_text", "") for item in biz_prop).strip()
+            )
+            if page_biz and page_biz == norm_biz:
+                return page["id"], []
+
+    # 2순위: 회사명 exact
+    exact_matches = [
+        p for p in pages
+        if canonical_company_token(_notion_title_company_name(p.get("properties") or {})) == clean_name
+    ]
+    if len(exact_matches) == 1:
+        return exact_matches[0]["id"], []
+    if len(exact_matches) > 1:
+        return None, exact_matches
+
+    # 3순위: 회사명 contains
+    if clean_name:
+        contains_matches = [
+            p for p in pages
+            if (lambda pc: clean_name in pc or pc in clean_name)(
+                canonical_company_token(_notion_title_company_name(p.get("properties") or {}))
+            )
+        ]
+        if len(contains_matches) == 1:
+            return contains_matches[0]["id"], []
+        if len(contains_matches) > 1:
+            return None, contains_matches
+
+    return None, []
+
+
+def notion_lookup_one(
+    report_type: str,
+    company_name: str,
+    business_number: str | None,
+    token: str,
+) -> dict[str, Any]:
+    """단일 보고서 유형에 대해 Notion DB를 조회하고 즉시 파싱한다.
+
+    FBU-VAL-0010 §6 규칙:
+      - found_and_parsed만 state_patch에 URL·summary 포함.
+      - found_but_unreadable·ambiguous는 page_url을 metadata에만 보존.
+
+    Returns 구조:
+        status: 6종 enum
+        page_id, page_url, title: metadata (found_and_parsed 아니어도 보존)
+        issues: 오류·경고 메시지
+        state_patch: found_and_parsed 시에만 실질 내용 포함
+        candidates: ambiguous 시 후보 목록
+    """
+    report_type_label = _NOTION_REPORT_TYPE_LABEL.get(report_type, "상담보고서")
+    result: dict[str, Any] = {
+        "status": "not_found",
+        "report_family": "consultation" if report_type in ("consultation", "meeting") else "internal_review",
+        "subtype": report_type,
+        "page_id": None,
+        "page_url": None,
+        "title": None,
+        "issues": [],
+        "state_patch": {},
+    }
+
+    # ── DB 조회 ──────────────────────────────────────────────────────────
+    try:
+        pages = _notion_query_report_db(token, report_type_label)
+    except PermissionError:
+        result["status"] = "db_permission_error"
+        result["issues"] = [f"Notion DB 접근 권한 없음 ({report_type_label})"]
+        return result
+    except Exception as exc:
+        result["status"] = "db_permission_error"
+        result["issues"] = [f"Notion DB 쿼리 오류: {exc}"]
+        return result
+
+    # ── 매칭 ─────────────────────────────────────────────────────────────
+    page_id, candidates = _match_notion_page(pages, company_name, business_number)
+
+    if candidates:
+        result["status"] = "ambiguous"
+        result["issues"] = [f"동명 업체 {len(candidates)}건 발견 — 수동 선택 필요"]
+        result["candidates"] = [
+            {
+                "page_id": p["id"],
+                "page_url": f"https://www.notion.so/{p['id'].replace('-', '')}",
+                "title": _notion_title_company_name(p.get("properties") or {}),
+            }
+            for p in candidates
+        ]
+        return result
+
+    if not page_id:
+        return result  # not_found
+
+    # ── found → 즉시 파싱 ─────────────────────────────────────────────────
+    page_url = f"https://www.notion.so/{page_id.replace('-', '')}"
+    # metadata는 found_and_parsed 여부와 무관하게 항상 보존 (FBU-VAL-0010 §6 규칙 3)
+    result["page_id"] = page_id
+    result["page_url"] = page_url
+    matched_page = next((p for p in pages if p["id"] == page_id), None)
+    if matched_page:
+        result["title"] = _notion_title_company_name(matched_page.get("properties") or {})
+
+    try:
+        parsed = parse_consulting_report_url(
+            page_url,
+            fallback_company_name=company_name or None,
+            fallback_business_number=business_number or None,
+            source_label=report_type_label,
+        )
+        has_evidence = bool(normalize_space(parsed.get("summary") or ""))
+        if has_evidence:
+            result["status"] = "found_and_parsed"
+            if report_type == "internal_review":
+                result["state_patch"] = apply_internal_review_enrichment({}, parsed)
+            else:
+                prefix = "consulting" if report_type == "consultation" else "meeting"
+                label = "상담보고서" if report_type == "consultation" else "미팅보고서"
+                result["state_patch"] = apply_consulting_enrichment(
+                    {}, parsed, state_prefix=prefix, source_display_label=label
+                )
+        else:
+            result["status"] = "found_but_unreadable"
+            result["issues"] = parsed.get("issues") or ["본문을 추출하지 못했습니다."]
+    except Exception as exc:
+        result["status"] = "found_but_unreadable"
+        result["issues"] = [f"페이지 파싱 오류: {exc}"]
+
+    return result
+
+
+def notion_auto_lookup(
+    company_name: str,
+    business_number: str | None,
+) -> dict[str, Any]:
+    """상담·미팅·심사보고서 3종을 순차 조회하고 통합 결과를 반환한다.
+
+    token_missing 시 전체 스킵하고 requires_user_decision=True 반환.
+    """
+    token = get_notion_api_token()
+    if not token:
+        return {
+            "company_name_used": company_name,
+            "business_number_used": business_number,
+            "token_status": "missing",
+            "consultation": {"status": "token_missing", "state_patch": {}, "issues": ["NOTION_API_TOKEN 미설정"]},
+            "meeting": {"status": "token_missing", "state_patch": {}, "issues": ["NOTION_API_TOKEN 미설정"]},
+            "internal_review": {"status": "token_missing", "state_patch": {}, "issues": ["NOTION_API_TOKEN 미설정"]},
+            "missing_notion_reports": ["consultation", "meeting", "internal_review"],
+            "requires_user_decision": True,
+        }
+
+    results: dict[str, Any] = {
+        "company_name_used": company_name,
+        "business_number_used": business_number,
+        "token_status": "ok",
+    }
+    for rtype in ("consultation", "meeting", "internal_review"):
+        results[rtype] = notion_lookup_one(rtype, company_name, business_number, token)
+
+    missing = [
+        rtype for rtype in ("consultation", "meeting", "internal_review")
+        if results[rtype].get("status") != "found_and_parsed"
+    ]
+    results["missing_notion_reports"] = missing
+    results["requires_user_decision"] = len(missing) > 0
+    return results
+
+
+def build_notion_lookup_state_patch(lookup_result: dict[str, Any]) -> dict[str, Any]:
+    """found_and_parsed 항목의 state_patch만 병합해 반환한다.
+
+    FBU-VAL-0010 §6 규칙 1·2:
+      - found_and_parsed만 primary URL 필드에 반영.
+      - 나머지 status는 primary URL 빈값 (URL은 notion_lookup metadata에만 보존).
+    """
+    merged: dict[str, Any] = {}
+    url_field_map = {
+        "consultation": "consultingReportUrl",
+        "meeting": "meetingReportUrl",
+        "internal_review": "internalReviewUrl",
+    }
+    for rtype, url_field in url_field_map.items():
+        entry = lookup_result.get(rtype) or {}
+        if entry.get("status") == "found_and_parsed":
+            merged.update(entry.get("state_patch") or {})
+            merged[url_field] = entry.get("page_url") or ""
+        # else: url_field는 빈값 유지 (primary URL 필드에 미반영)
+
+    # notionLookupStatus state 필드 주입
+    merged["notionLookupStatus"] = {
+        rtype: (lookup_result.get(rtype) or {}).get("status", "not_found")
+        for rtype in ("consultation", "meeting", "internal_review")
+    }
+    missing = lookup_result.get("missing_notion_reports") or []
+    merged["missingNotionReports"] = missing
+    if missing:
+        _label_map = {
+            "consultation": "상담보고서",
+            "meeting": "미팅보고서",
+            "internal_review": "심사보고서",
+        }
+        merged["evaluationContinuationMode"] = "flowscore_only_or_partial"
+        merged["conditionalEvaluationReason"] = (
+            ", ".join(_label_map[r] for r in missing if r in _label_map) + " 미확인"
+        )
+    return merged
 
 
 def find_sentence_by_keywords(text: str, keywords: list[str]) -> str | None:
@@ -717,11 +1043,21 @@ def parse_consulting_report_url(
     }
 
 
-def apply_consulting_enrichment(state_patch: dict[str, Any], consulting_report: dict[str, Any]) -> dict[str, Any]:
+def apply_consulting_enrichment(
+    state_patch: dict[str, Any],
+    consulting_report: dict[str, Any],
+    *,
+    state_prefix: str = "consulting",
+    source_display_label: str = "상담보고서",
+) -> dict[str, Any]:
     next_patch = dict(state_patch)
     summary = consulting_report.get("summary")
     cross_checks = consulting_report.get("cross_checks") or []
     issues = consulting_report.get("issues") or []
+    summary_key = f"{state_prefix}Summary"
+    cross_checks_key = f"{state_prefix}CrossChecks"
+    issues_key = f"{state_prefix}Issues"
+    validation_key = f"{state_prefix}ValidationSummary"
 
     if consulting_report.get("company_name") and not next_patch.get("companyName"):
         next_patch["companyName"] = consulting_report["company_name"]
@@ -739,18 +1075,18 @@ def apply_consulting_enrichment(state_patch: dict[str, Any], consulting_report: 
         next_patch["buyerName"] = consulting_report["buyer"]
 
     if summary:
-        next_patch["consultingSummary"] = summary
+        next_patch[summary_key] = summary
     if cross_checks:
-        next_patch["consultingCrossChecks"] = cross_checks
+        next_patch[cross_checks_key] = cross_checks
     if issues:
-        next_patch["consultingIssues"] = issues
+        next_patch[issues_key] = issues
 
     if consulting_report.get("supplier") or consulting_report.get("buyer"):
         checks = list(next_patch.get("checks") or [])
         if consulting_report.get("supplier"):
-            checks.insert(0, f"상담보고서 매입처: {consulting_report['supplier']}")
+            checks.insert(0, f"{source_display_label} 매입처: {consulting_report['supplier']}")
         if consulting_report.get("buyer"):
-            checks.insert(0, f"상담보고서 매출처: {consulting_report['buyer']}")
+            checks.insert(0, f"{source_display_label} 매출처: {consulting_report['buyer']}")
         next_patch["checks"] = checks[:5]
 
     summary_bits = []
@@ -761,7 +1097,7 @@ def apply_consulting_enrichment(state_patch: dict[str, Any], consulting_report: 
     if issues:
         summary_bits.append(" ".join(issues[:2]))
     if summary_bits:
-        next_patch["consultingValidationSummary"] = " ".join(summary_bits).strip()
+        next_patch[validation_key] = " ".join(summary_bits).strip()
 
     return next_patch
 
@@ -874,6 +1210,15 @@ def build_report_limit_from_financials(parsed_report: dict[str, Any]) -> int | N
     return int(round(((annual_sales_krw / 12.0) * 0.7) / 1000.0) * 1000)
 
 
+def normalize_limit_display_text(value: Any) -> str:
+    parsed = parse_krw_text_to_int(value)
+    if parsed is not None:
+        return format_krw(parsed)
+    if value in (None, ""):
+        return "확인 필요"
+    return str(value)
+
+
 def apply_report_enrichment(state_patch: dict[str, Any], parsed_report: dict[str, Any]) -> dict[str, Any]:
     next_patch = dict(state_patch)
     report_type = parsed_report.get("report_type")
@@ -884,6 +1229,9 @@ def apply_report_enrichment(state_patch: dict[str, Any], parsed_report: dict[str
     monthly_credit_limit = parsed_report.get("monthly_credit_limit")
     recommended_limit = parsed_report.get("recommended_credit_limit", {}).get("recommended")
     derived_limit_krw = build_report_limit_from_financials(parsed_report)
+    parsed_monthly_limit_krw = parse_krw_text_to_int(recommended_limit or monthly_credit_limit)
+    base_monthly_limit_krw = parsed_monthly_limit_krw or derived_limit_krw
+    base_monthly_limit_text = normalize_limit_display_text(base_monthly_limit_krw)
     grade = parsed_report.get("credit_grade")
     total_score = parsed_report.get("total_score")
     pd_pct = parsed_report.get("pd_pct")
@@ -918,12 +1266,12 @@ def apply_report_enrichment(state_patch: dict[str, Any], parsed_report: dict[str
         next_patch["representativeName"] = representative_name
     if business_number:
         next_patch["businessNumber"] = business_number
-    if recommended_limit or monthly_credit_limit:
-        next_patch["reportMonthlyCreditLimit"] = recommended_limit or monthly_credit_limit
-        next_patch["estimatedLimitValue"] = recommended_limit or monthly_credit_limit
-    elif derived_limit_krw:
-        next_patch["reportMonthlyCreditLimit"] = format_krw(derived_limit_krw)
-        next_patch["estimatedLimitValue"] = format_krw(derived_limit_krw)
+    if base_monthly_limit_krw:
+        next_patch["reportMonthlyCreditLimit"] = base_monthly_limit_text
+        next_patch["baseMonthlyLimitLabel"] = "기준 월간 적정 한도"
+        next_patch["baseMonthlyLimitValue"] = base_monthly_limit_text
+        next_patch["estimatedLimitLabel"] = "기준 월간 적정 한도"
+        next_patch["estimatedLimitValue"] = base_monthly_limit_text
     if grade:
         next_patch["financialFilterSignal"] = grade
     else:
@@ -969,7 +1317,7 @@ def apply_report_enrichment(state_patch: dict[str, Any], parsed_report: dict[str
         next_patch["estimatedMarginValue"] = estimated_margin
     elif company_name:
         next_patch["estimatedMarginValue"] = "추가 확인 필요"
-    if not (recommended_limit or monthly_credit_limit or derived_limit_krw) and company_name:
+    if not base_monthly_limit_krw and company_name:
         next_patch["estimatedLimitValue"] = "추가 확인 필요"
 
     summary_parts = []
@@ -988,11 +1336,11 @@ def apply_report_enrichment(state_patch: dict[str, Any], parsed_report: dict[str
         summary_parts.append(f"종합점수는 {total_score:.1f} / 1,000입니다.")
     if pd_pct is not None:
         summary_parts.append(f"부도확률(PD)은 {pd_pct:.2f}%입니다.")
-    if recommended_limit or monthly_credit_limit:
-        summary_parts.append(f"월간 적정 신용한도는 {recommended_limit or monthly_credit_limit} 수준으로 읽힙니다.")
+    if parsed_monthly_limit_krw:
+        summary_parts.append(f"리포트 기준 월간 적정 신용한도는 {base_monthly_limit_text} 수준으로 읽힙니다.")
     elif derived_limit_krw:
         summary_parts.append(
-            f"리포트 최신 매출액 기준 기본 산식 한도는 {format_krw(derived_limit_krw)} 수준으로 계산됩니다."
+            f"리포트 최신 매출액 기준 월간 적정 한도는 {format_krw(derived_limit_krw)} 수준으로 계산됩니다."
         )
     if evaluation_date:
         summary_parts.append(f"평가기준일은 {evaluation_date}입니다.")
@@ -1135,18 +1483,148 @@ def save_live_learning_registry(registry: dict[str, Any], path: Path = LIVE_LEAR
     path.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def learning_material_components(state: dict[str, Any]) -> dict[str, float]:
-    has_flow_score = bool(normalize_space(state.get("learningFlowScoreFileName")))
-    has_consultation = bool(
-        normalize_space(state.get("consultingReportUrl")) or normalize_space(state.get("learningConsultingFileName"))
+# ── SourceQuality helpers (FBU-VAL-0006 Finding 1) ──────────────────────────
+_NOTION_BLOCK_PATTERNS = ["권한", "본문", "읽기 실패", "접근 불가", "integration", "oops", "공개 링크", "API 없"]
+_SCAN_REPORT_TYPES = {"image_or_scan_pdf", "generic_company_pdf"}
+
+
+def _notion_body_accessible(issues: list | None, summary: str | None, for_update: bool = False) -> bool:
+    """True when the Notion body was successfully extracted.
+
+    for_update=False (evaluation):
+      summary 있으면 True, 차단 이슈 있으면 False, 그 외 True (legacy 호환)
+    for_update=True (update weight):
+      summary/parsing evidence 필수 — URL만 있고 evidence 없으면 False.
+      이 기준이 핵심: "자료 존재"와 "자료 품질" 분리 (FBU-VAL-0007 Finding 3).
+    """
+    if normalize_space(summary or ""):
+        return True
+    if for_update:
+        # update 기준: 실제 파싱 evidence(summary) 없으면 False
+        return False
+    # evaluation 기준: 차단 이슈 없으면 legacy 호환 허용
+    for issue in issues or []:
+        if any(p in str(issue) for p in _NOTION_BLOCK_PATTERNS):
+            return False
+    return True
+
+
+def source_quality_from_state(state: dict[str, Any]) -> dict[str, Any]:
+    """Return a SourceQuality snapshot for display / logging.
+
+    Fields per resource:
+      present          – URL or filename exists in state
+      usable_for_evaluation – can contribute to evaluation (partial text OK)
+      usable_for_update     – must pass stricter gate (body extracted, no blocking issue)
+    """
+    # FlowScore PDF
+    fs_file = bool(normalize_space(state.get("learningFlowScoreFileName")))
+    report_type = state.get("reportType") or ""
+    fs_scan = report_type in _SCAN_REPORT_TYPES
+    # If reportType not yet set (legacy / not parsed yet) fall back to existence
+    fs_usable = fs_file and (not report_type or not fs_scan)
+
+    # Consulting / Meeting
+    has_consult_url = bool(
+        normalize_space(state.get("consultingReportUrl"))
+        or normalize_space(state.get("meetingReportUrl"))
+        or normalize_space(state.get("learningConsultingFileName"))
     )
-    has_internal = bool(normalize_space(state.get("internalReviewUrl")))
-    has_additional = bool(normalize_space(state.get("learningExtraInfo")))
+    consult_issues = list(state.get("consultingIssues") or []) + list(state.get("meetingIssues") or [])
+    consult_summary = state.get("consultingSummary") or state.get("meetingSummary")
+    consult_usable_eval = has_consult_url and _notion_body_accessible(consult_issues, consult_summary, for_update=False)
+    consult_usable_update = has_consult_url and _notion_body_accessible(consult_issues, consult_summary, for_update=True)
+
+    # Internal review
+    has_internal_url = bool(normalize_space(state.get("internalReviewUrl")))
+    internal_issues = list(state.get("internalReviewIssues") or [])
+    internal_summary = state.get("internalReviewSummary") or state.get("internalReviewValidationSummary")
+    internal_usable_eval = has_internal_url and _notion_body_accessible(internal_issues, internal_summary, for_update=False)
+    internal_usable_update = has_internal_url and _notion_body_accessible(internal_issues, internal_summary, for_update=True)
+
+    # Additional info
+    extra = normalize_space(state.get("learningExtraInfo") or "")
+    additional_usable = len(extra) >= 30
+
     return {
-        "flow_score_report": 0.35 if has_flow_score else 0.0,
-        "consultation_report": 0.35 if has_consultation else 0.0,
-        "internal_review": 0.15 if has_internal else 0.0,
-        "additional_sources": 0.05 if has_additional else 0.0,
+        "flow_score": {
+            "present": fs_file,
+            "usable_for_evaluation": fs_usable,
+            "usable_for_update": fs_usable,
+            "issues": ["스캔/OCR 필요 PDF — 재무 추출 불가"] if fs_scan else [],
+        },
+        "consultation": {
+            "present": has_consult_url,
+            "usable_for_evaluation": consult_usable_eval,
+            "usable_for_update": consult_usable_update,
+            "issues": (
+                [i for i in consult_issues if any(p in str(i) for p in _NOTION_BLOCK_PATTERNS)]
+                if not consult_usable_update else []
+            ) + (["상담보고서 본문 미추출 — update 제외"] if consult_usable_eval and not consult_usable_update else []),
+        },
+        "internal_review": {
+            "present": has_internal_url,
+            "usable_for_evaluation": internal_usable_eval,
+            "usable_for_update": internal_usable_update,
+            "issues": (
+                [i for i in internal_issues if any(p in str(i) for p in _NOTION_BLOCK_PATTERNS)]
+                if not internal_usable_update else []
+            ) + (["내부심사 본문 미추출 — update 제외"] if internal_usable_eval and not internal_usable_update else []),
+        },
+        "additional": {
+            "present": bool(extra),
+            "usable_for_evaluation": additional_usable,
+            "usable_for_update": additional_usable,
+            "issues": ["추가정보 본문 30자 미만"] if extra and not additional_usable else [],
+        },
+    }
+
+
+def learning_material_components(state: dict[str, Any]) -> dict[str, float]:
+    """Compute per-source learning weights based on SourceQuality (FBU-VAL-0006 F1).
+
+    Weights are set to 0.0 when the source is present but fails the quality gate
+    (e.g. Notion body inaccessible, scan PDF, empty extra-info).  Downstream
+    callers (learning_material_flags_from_components, learning_status_from_components)
+    remain unchanged — they just see 0.0 instead of a positive weight.
+    """
+    sq = source_quality_from_state(state)
+    return {
+        "flow_score_report": 0.35 if sq["flow_score"]["usable_for_update"] else 0.0,
+        "consultation_report": 0.35 if sq["consultation"]["usable_for_update"] else 0.0,
+        "internal_review": 0.15 if sq["internal_review"]["usable_for_update"] else 0.0,
+        "additional_sources": 0.05 if sq["additional"]["usable_for_update"] else 0.0,
+    }
+
+
+def _source_quality_flags_from_state(state: dict[str, Any]) -> dict[str, bool]:
+    """state에서 source별 usable_for_update 플래그를 추출 — sources dict에 저장하기 위한 헬퍼."""
+    sq = source_quality_from_state(state)
+    return {
+        "flow_score_usable_for_update": sq["flow_score"]["usable_for_update"],
+        "consultation_usable_for_update": sq["consultation"]["usable_for_update"],
+        "internal_review_usable_for_update": sq["internal_review"]["usable_for_update"],
+        "additional_usable_for_update": sq["additional"]["usable_for_update"],
+    }
+
+
+def _merged_components_from_sources(merged_sources: dict[str, Any]) -> dict[str, float]:
+    """merged_sources의 quality flags 기반으로 학습 가중치를 계산.
+
+    quality flags(flow_score_usable_for_update 등)가 있으면 사용하고,
+    없는 legacy 항목은 URL/파일명 존재 여부로 평가 기여는 허용하되
+    update 가중치는 0으로 처리(usable_for_update=False 간주).
+    """
+    # quality flag 우선 — 없으면 legacy URL 존재 기준이지만 update weight=0
+    flow_usable = merged_sources.get("flow_score_usable_for_update", False)
+    consult_usable = merged_sources.get("consultation_usable_for_update", False)
+    internal_usable = merged_sources.get("internal_review_usable_for_update", False)
+    additional_usable = merged_sources.get("additional_usable_for_update", False)
+    return {
+        "flow_score_report": 0.35 if flow_usable else 0.0,
+        "consultation_report": 0.35 if consult_usable else 0.0,
+        "internal_review": 0.15 if internal_usable else 0.0,
+        "additional_sources": 0.05 if additional_usable else 0.0,
     }
 
 
@@ -1411,6 +1889,7 @@ def build_flow_report_only_case(
         "sources": {
             "flow_score_file_name": flow_score_file_name,
             "consulting_report_url": "",
+            "meeting_report_url": "",
             "consulting_file_name": "",
             "internal_review_url": "",
             "additional_info": "",
@@ -1551,14 +2030,8 @@ def merge_learning_case_entries(primary: dict[str, Any], secondary: dict[str, An
     richer = primary if case_quality_score(primary) >= case_quality_score(secondary) else secondary
 
     merged_sources = merge_non_empty_dict(older.get("sources") or {}, newer.get("sources") or {})
-    merged_components = {
-        "flow_score_report": 0.35 if normalize_space(merged_sources.get("flow_score_file_name")) else 0.0,
-        "consultation_report": 0.35
-        if normalize_space(merged_sources.get("consulting_report_url")) or normalize_space(merged_sources.get("consulting_file_name"))
-        else 0.0,
-        "internal_review": 0.15 if normalize_space(merged_sources.get("internal_review_url")) else 0.0,
-        "additional_sources": 0.05 if normalize_space(merged_sources.get("additional_info")) else 0.0,
-    }
+    # SourceQuality 기반 가중치 계산 — URL/파일명 존재만으로 update weight 부여하지 않음
+    merged_components = _merged_components_from_sources(merged_sources)
     merged_status = learning_status_from_components(merged_components)
     merged = dict(richer)
     merged["id"] = normalize_space(older.get("id")) or normalize_space(newer.get("id")) or learning_case_id_from_identity(
@@ -1638,13 +2111,17 @@ def record_live_learning_case(
     case_id = learning_case_id_from_identity(merge_identity)
     now_text = datetime.now().replace(microsecond=0).isoformat()
 
+    # quality flags를 sources에 함께 저장 — merge 후에도 SourceQuality 기준 유지
+    _sq_flags = _source_quality_flags_from_state(state)
     incoming_sources = {
         "flow_score_file_name": normalize_space(state.get("learningFlowScoreFileName")),
         "consulting_report_url": normalize_space(state.get("consultingReportUrl")),
+        "meeting_report_url": normalize_space(state.get("meetingReportUrl")),
         "consulting_file_name": normalize_space(state.get("learningConsultingFileName")),
         "internal_review_url": normalize_space(state.get("internalReviewUrl")),
         "additional_info": normalize_space(state.get("learningExtraInfo")),
         "business_number": normalize_space(state_patch.get("businessNumber") or state.get("businessNumber")),
+        **_sq_flags,
     }
 
     cases = registry.setdefault("cases", [])
@@ -1658,14 +2135,8 @@ def record_live_learning_case(
     )
     previous_case = cases[existing_index] if existing_index is not None else {}
     merged_sources = merge_non_empty_dict(previous_case.get("sources") or {}, incoming_sources)
-    merged_components = {
-        "flow_score_report": 0.35 if normalize_space(merged_sources.get("flow_score_file_name")) else 0.0,
-        "consultation_report": 0.35
-        if normalize_space(merged_sources.get("consulting_report_url")) or normalize_space(merged_sources.get("consulting_file_name"))
-        else 0.0,
-        "internal_review": 0.15 if normalize_space(merged_sources.get("internal_review_url")) else 0.0,
-        "additional_sources": 0.05 if normalize_space(merged_sources.get("additional_info")) else 0.0,
-    }
+    # SourceQuality 기반 가중치 계산 — URL/파일명 존재만으로 update weight 부여하지 않음
+    merged_components = _merged_components_from_sources(merged_sources)
     merged_status = learning_status_from_components(merged_components)
 
     case_entry = {
@@ -1696,11 +2167,43 @@ def record_live_learning_case(
             "companyName": state_patch.get("companyName"),
             "businessNumber": state_patch.get("businessNumber") or state.get("businessNumber"),
             "financialFilterSignal": state_patch.get("financialFilterSignal"),
+            "reportMonthlyCreditLimit": state_patch.get("reportMonthlyCreditLimit"),
+            "baseMonthlyLimitLabel": state_patch.get("baseMonthlyLimitLabel"),
+            "baseMonthlyLimitValue": state_patch.get("baseMonthlyLimitValue"),
+            "engineAdjustedLimitLabel": state_patch.get("engineAdjustedLimitLabel"),
+            "engineAdjustedLimitValue": state_patch.get("engineAdjustedLimitValue"),
+            "learningOperationalLimitLabel": state_patch.get("learningOperationalLimitLabel"),
+            "learningOperationalLimitValue": state_patch.get("learningOperationalLimitValue"),
+            "estimatedLimitLabel": state_patch.get("estimatedLimitLabel"),
             "estimatedLimitValue": state_patch.get("estimatedLimitValue"),
             "estimatedMarginValue": state_patch.get("estimatedMarginValue"),
             "currentProposalState": state_patch.get("currentProposalState"),
             "recommendedTenorText": state_patch.get("recommendedTenorText"),
             "learningEligible": state_patch.get("learningEligible"),
+            "consultingReportUrl": state.get("consultingReportUrl"),
+            "meetingReportUrl": state.get("meetingReportUrl"),
+            "internalReviewUrl": state.get("internalReviewUrl"),
+            "learningExtraInfo": state.get("learningExtraInfo"),
+            "consultingValidationSummary": state_patch.get("consultingValidationSummary") or state.get("consultingValidationSummary"),
+            "consultingSummary": state_patch.get("consultingSummary") or state.get("consultingSummary"),
+            "consultingCrossChecks": state_patch.get("consultingCrossChecks") or state.get("consultingCrossChecks"),
+            "consultingIssues": state_patch.get("consultingIssues") or state.get("consultingIssues"),
+            "meetingValidationSummary": state_patch.get("meetingValidationSummary") or state.get("meetingValidationSummary"),
+            "meetingSummary": state_patch.get("meetingSummary") or state.get("meetingSummary"),
+            "meetingCrossChecks": state_patch.get("meetingCrossChecks") or state.get("meetingCrossChecks"),
+            "meetingIssues": state_patch.get("meetingIssues") or state.get("meetingIssues"),
+            "internalReviewValidationSummary": state_patch.get("internalReviewValidationSummary") or state.get("internalReviewValidationSummary"),
+            "internalReviewSummary": state_patch.get("internalReviewSummary") or state.get("internalReviewSummary"),
+            "internalReviewCrossChecks": state_patch.get("internalReviewCrossChecks") or state.get("internalReviewCrossChecks"),
+            "internalReviewIssues": state_patch.get("internalReviewIssues") or state.get("internalReviewIssues"),
+            "supportingDocumentSummary": state_patch.get("supportingDocumentSummary") or state.get("supportingDocumentSummary"),
+            "supportingDocumentIssues": state_patch.get("supportingDocumentIssues") or state.get("supportingDocumentIssues"),
+            "additionalInfoSummary": state_patch.get("additionalInfoSummary") or state.get("additionalInfoSummary"),
+            "additionalInfoIssues": state_patch.get("additionalInfoIssues") or state.get("additionalInfoIssues"),
+            "supplierName": state_patch.get("supplierName") or state.get("supplierName"),
+            "buyerName": state_patch.get("buyerName") or state.get("buyerName"),
+            "requestedTenorDays": state_patch.get("requestedTenorDays") or state.get("requestedTenorDays"),
+            "requestedTenorMonths": state_patch.get("requestedTenorMonths") or state.get("requestedTenorMonths"),
         },
         "result_snapshot": result,
     }
@@ -1767,9 +2270,12 @@ def serialize_learning_case(case: dict[str, Any]) -> dict[str, Any]:
     components = (case.get("learning") or {}).get("components", {}) or {}
     source_links: list[dict[str, str]] = []
     consulting_url = normalize_space(sources.get("consulting_report_url"))
+    meeting_url = normalize_space(sources.get("meeting_report_url"))
     internal_url = normalize_space(sources.get("internal_review_url"))
     if consulting_url:
         source_links.append({"label": "상담리포트", "url": consulting_url})
+    if meeting_url:
+        source_links.append({"label": "미팅보고서", "url": meeting_url})
     if internal_url:
         source_links.append({"label": "심사보고서", "url": internal_url})
     return {
@@ -1803,13 +2309,35 @@ def sort_learning_cases(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def build_learning_case_state(case: dict[str, Any]) -> dict[str, Any]:
     case = normalize_learning_case(case)
     state_patch: dict[str, Any] = {"mode": "learning"}
-    web_context = case.get("web_context_snapshot")
+    web_context = None
+    engine_input_snapshot = case.get("engine_input_snapshot")
+    result_snapshot = case.get("result_snapshot")
+    if isinstance(engine_input_snapshot, dict) and engine_input_snapshot and isinstance(result_snapshot, dict) and result_snapshot:
+        web_context = build_web_context(engine_input_snapshot, result_snapshot)
+    if not web_context:
+        web_context = case.get("web_context_snapshot")
+    context_patch: dict[str, Any] = {}
     if isinstance(web_context, dict) and web_context:
         web_context = normalize_learning_context_for_display(web_context)
-        state_patch.update(state_patch_from_context(web_context))
+        context_patch = state_patch_from_context(web_context)
+        state_patch.update(context_patch)
     state_snapshot = case.get("state_snapshot")
     if isinstance(state_snapshot, dict) and state_snapshot:
         state_patch.update(state_snapshot)
+    if context_patch:
+        for key in [
+            "reportMonthlyCreditLimit",
+            "baseMonthlyLimitLabel",
+            "baseMonthlyLimitValue",
+            "engineAdjustedLimitLabel",
+            "engineAdjustedLimitValue",
+            "learningOperationalLimitLabel",
+            "learningOperationalLimitValue",
+            "estimatedLimitLabel",
+            "estimatedLimitValue",
+        ]:
+            if context_patch.get(key):
+                state_patch[key] = context_patch.get(key)
     financial_summary = state_patch.get("reportFinancialSummary") or {}
     if isinstance(financial_summary, dict) and financial_summary:
         latest_year = sorted(financial_summary.keys())[-1]
@@ -1831,6 +2359,241 @@ def build_learning_case_state(case: dict[str, Any]) -> dict[str, Any]:
         evaluation_weight = float((case.get("learning") or {}).get("evaluation_weight") or 0)
         state_patch["learningWeight"] = f"{update_weight:.2f}" if update_weight else f"{evaluation_weight:.2f}"
     return state_patch
+
+
+def detail_score_label(section_key: str, item_name: str) -> str:
+    labels = {
+        "applicant": {
+            "financial": "재무",
+            "business": "사업",
+            "management": "경영관리",
+            "compliance": "준법/정합성",
+            "external": "외부신호",
+        },
+        "buyer": {
+            "financial": "재무",
+            "business": "사업",
+            "payment": "결제/회수",
+            "external": "외부신호",
+        },
+        "transaction": {
+            "structure": "거래구조",
+            "tenor": "결제유예기간",
+            "macro": "업황/거시",
+        },
+        "overall": {
+            "applicant": "신청업체",
+            "buyer": "매출처",
+            "transaction": "거래구조",
+        },
+    }
+    return labels.get(section_key, {}).get(item_name, item_name)
+
+
+def build_detail_score_section(section_key: str, title: str, result_snapshot: dict[str, Any]) -> dict[str, Any]:
+    score_breakdown = ((result_snapshot or {}).get("score_breakdown") or {}).get(section_key) or {}
+    breakdown_items = score_breakdown.get("items") or score_breakdown.get("weighted_items") or []
+    grade_source_key = "overall" if section_key == "overall" else section_key
+    grade_source = (result_snapshot or {}).get(grade_source_key) or {}
+    total_score = grade_source.get("score")
+    if total_score in (None, ""):
+        total_score = score_breakdown.get("total")
+    return {
+        "key": section_key,
+        "title": title,
+        "score": round(float(total_score), 2) if total_score not in (None, "") else None,
+        "grade": grade_source.get("grade"),
+        "rows": [
+            {
+                "label": detail_score_label(section_key, str(item.get("name", ""))),
+                "score": round(float(item.get("score", 0.0)), 2),
+                "weight_text": f"{float(item.get('weight', 0.0)) * 100:.0f}%",
+                "contribution": round(float(item.get("contribution", 0.0)), 2),
+            }
+            for item in breakdown_items
+        ],
+    }
+
+
+def build_limit_detail_rows(
+    state_patch: dict[str, Any], engine_input_snapshot: dict[str, Any], result_snapshot: dict[str, Any]
+) -> dict[str, Any]:
+    framework = load_active_framework()
+    model = framework["flowpay_underwriting"]
+    limit_cfg = model["limit"]
+
+    base_monthly_limit_krw = parse_krw_text_to_int(state_patch.get("baseMonthlyLimitValue") or state_patch.get("reportMonthlyCreditLimit"))
+    engine_adjusted_limit_krw = parse_krw_text_to_int(state_patch.get("engineAdjustedLimitValue"))
+    learning_operational_limit_krw = parse_krw_text_to_int(state_patch.get("learningOperationalLimitValue"))
+
+    financials = engine_input_snapshot.get("financials") or {}
+    annual_sales = float(financials.get("annual_sales") or 0.0)
+    operating_profit = float(financials.get("operating_profit") or 0.0)
+    net_profit = float(financials.get("net_profit") or 0.0)
+    business_years = float((engine_input_snapshot.get("screening") or {}).get("business_years") or 0.0)
+    requested_tenor_months = int(engine_input_snapshot.get("requested_tenor_months") or 3)
+    overall_score = float(((result_snapshot.get("overall") or {}).get("score")) or 0.0)
+    buyer_score = float(((result_snapshot.get("buyer") or {}).get("score")) or 0.0)
+
+    if business_years <= 2:
+        age_factor = float(limit_cfg["age_factor"]["lte_2"])
+    elif business_years <= 3:
+        age_factor = float(limit_cfg["age_factor"]["lte_3"])
+    elif business_years < 7:
+        age_factor = float(limit_cfg["age_factor"]["lt_7"])
+    else:
+        age_factor = float(limit_cfg["age_factor"]["gte_7"])
+
+    if operating_profit >= 0 and net_profit >= 0:
+        profit_factor = float(limit_cfg["profit_factor"]["both_positive"])
+        profit_note = "영업이익/당기순이익 모두 흑자"
+    elif operating_profit < 0 and net_profit < 0:
+        profit_factor = float(limit_cfg["profit_factor"]["both_negative"])
+        profit_note = "영업이익/당기순이익 모두 적자"
+    else:
+        profit_factor = float(limit_cfg["profit_factor"]["one_negative"])
+        profit_note = "영업이익 또는 당기순이익 중 하나가 적자"
+
+    risk_factor = score_band_multiplier(
+        overall_score,
+        [(80, 1.10), (70, 1.00), (60, 0.85), (50, 0.70), (0, 0.55)],
+    )
+    buyer_factor = score_band_multiplier(
+        buyer_score,
+        [(80, 1.05), (70, 1.00), (60, 0.90), (50, 0.80), (0, 0.65)],
+    )
+    tenor_factor = {1: 1.00, 2: 0.90, 3: 0.80, 4: 0.70, 5: 0.60}.get(requested_tenor_months, 0.55)
+
+    current_amount = float(base_monthly_limit_krw or 0)
+    factor_rows = [
+        {
+            "label": state_patch.get("baseMonthlyLimitLabel") or "기준 월간 적정 한도",
+            "factor_text": "-",
+            "result_text": format_krw(base_monthly_limit_krw),
+            "note": "리포트 직접값이 있으면 우선 사용하고, 없으면 연매출/12 x 70% 기준을 사용합니다.",
+        }
+    ]
+
+    for label, factor, note in [
+        ("업력 보정", age_factor, f"업력 {business_years:.2f}년 기준"),
+        ("손익 보정", profit_factor, profit_note),
+        ("통합점수 보정", risk_factor, f"통합 점수 {overall_score:.2f}점"),
+        ("매출처 보정", buyer_factor, f"매출처 점수 {buyer_score:.2f}점"),
+        ("결제유예기간 보정", tenor_factor, f"결제유예기간 {requested_tenor_months}개월 기준"),
+    ]:
+        current_amount *= factor
+        factor_rows.append(
+            {
+                "label": label,
+                "factor_text": f"{factor:.2f}배",
+                "result_text": format_krw(int(round(current_amount))),
+                "note": note,
+            }
+        )
+
+    hard_cap = (annual_sales / 12.0) * float(limit_cfg["monthly_sales_cap_ratio"]) if annual_sales > 0 else None
+    if hard_cap:
+        capped_amount = min(current_amount, hard_cap)
+        if capped_amount != current_amount:
+            factor_rows.append(
+                {
+                    "label": "월매출 상한 적용",
+                    "factor_text": "cap",
+                    "result_text": format_krw(int(round(capped_amount))),
+                    "note": "엔진은 월매출 상한을 넘지 않도록 한도를 제한합니다.",
+                }
+            )
+            current_amount = capped_amount
+
+    factor_rows.append(
+        {
+            "label": state_patch.get("engineAdjustedLimitLabel") or "엔진 보정 한도",
+            "factor_text": "최종",
+            "result_text": format_krw(engine_adjusted_limit_krw),
+            "note": "위 보정 배수와 천원 단위 반올림을 적용한 엔진 최종 한도입니다.",
+        }
+    )
+    factor_rows.append(
+        {
+            "label": state_patch.get("learningOperationalLimitLabel") or "학습모드 운영 한도(주간 1회 기준)",
+            "factor_text": "/4",
+            "result_text": format_krw(learning_operational_limit_krw),
+            "note": "학습모드 화면에서는 엔진 보정 한도를 4로 나눈 뒤 백만원 미만 절사해 보수적으로 표시합니다.",
+        }
+    )
+
+    return {
+        "base_monthly_limit_text": format_krw(base_monthly_limit_krw),
+        "engine_adjusted_limit_text": format_krw(engine_adjusted_limit_krw),
+        "learning_operational_limit_text": format_krw(learning_operational_limit_krw),
+        "rows": factor_rows,
+    }
+
+
+def build_tenor_margin_rows(engine_input_snapshot: dict[str, Any], result_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    framework = load_active_framework()
+    model = framework["flowpay_underwriting"]
+    supported_months = sorted(model["margin"]["supported_deferral_months"])
+    applicant_score = float(((result_snapshot.get("applicant") or {}).get("score")) or 0.0)
+    buyer_score = float(((result_snapshot.get("buyer") or {}).get("score")) or 0.0)
+    transaction_score = float(((result_snapshot.get("transaction") or {}).get("score")) or 0.0)
+    overall_score = float(((result_snapshot.get("overall") or {}).get("score")) or 0.0)
+    applicant_compliance_score = float(
+        (((result_snapshot.get("applicant") or {}).get("category_scores") or {}).get("compliance")) or 0.0
+    )
+    selected_month = int(engine_input_snapshot.get("requested_tenor_months") or 0)
+
+    rows: list[dict[str, Any]] = []
+    for month in supported_months:
+        margin = compute_margin_result(
+            requested_tenor_months=month,
+            applicant_score=applicant_score,
+            buyer_score=buyer_score,
+            transaction_score=transaction_score,
+            overall_score=overall_score,
+            applicant_compliance_score=applicant_compliance_score,
+            model=model,
+        )
+        note = "대안 검토"
+        if month == selected_month:
+            note = "현재 제안 · 적정 유예기간 및 마진율"
+        elif month > selected_month:
+            note = "보수 검토"
+        rows.append(
+            {
+                "months": month,
+                "tenor_label": f"{month}개월",
+                "commercial_rate_text": format_percent(margin.get("commercial_rate_pct")),
+                "compliant_rate_text": format_percent(margin.get("compliant_rate_pct")),
+                "selected": month == selected_month,
+                "note": note,
+            }
+        )
+    return rows
+
+
+def build_evaluation_detail_report(case: dict[str, Any]) -> dict[str, Any]:
+    result_snapshot = case.get("result_snapshot") or {}
+    engine_input_snapshot = case.get("engine_input_snapshot") or {}
+    if not result_snapshot:
+        return {}
+
+    state_patch = build_learning_case_state(case)
+    sales_view = result_snapshot.get("sales_view") or {}
+    return {
+        "score_sections": [
+            build_detail_score_section("applicant", "신청업체 점수표", result_snapshot),
+            build_detail_score_section("buyer", "매출처 점수표", result_snapshot),
+            build_detail_score_section("transaction", "거래구조 점수표", result_snapshot),
+            build_detail_score_section("overall", "통합 점수표", result_snapshot),
+        ],
+        "limit_section": build_limit_detail_rows(state_patch, engine_input_snapshot, result_snapshot),
+        "tenor_margin_rows": build_tenor_margin_rows(engine_input_snapshot, result_snapshot),
+        "current_tenor_text": state_patch.get("recommendedTenorText") or "결제기간 확인 필요",
+        "risk_notes": list(sales_view.get("risk_notes") or []),
+        "strengths": list(result_snapshot.get("strengths") or []),
+        "weaknesses": list(result_snapshot.get("weaknesses") or []),
+    }
 
 
 def format_krw(value: Any) -> str:
@@ -1904,46 +2667,25 @@ def normalize_learning_context_for_display(context: dict[str, Any] | None) -> di
         return {}
     normalized = json.loads(json.dumps(context, ensure_ascii=False))
     sales_view = dict(normalized.get("sales_view") or {})
-    weekly_limit_krw = weekly_learning_limit_from_engine(sales_view.get("estimated_limit_krw"))
-    if not weekly_limit_krw:
-        return normalized
+    engine_adjusted_limit_krw = sales_view.get("estimated_limit_krw")
+    base_monthly_limit_krw = sales_view.get("reference_purchase_amount_krw")
+    weekly_limit_krw = weekly_learning_limit_from_engine(engine_adjusted_limit_krw)
 
-    sales_view["raw_estimated_limit_krw"] = sales_view.get("estimated_limit_krw")
-    sales_view["estimated_limit_krw"] = weekly_limit_krw
-    sales_view["reference_purchase_amount_krw"] = weekly_limit_krw
-    sales_view["reference_purchase_amount_source"] = "weekly_learning_limit"
+    sales_view["raw_estimated_limit_krw"] = engine_adjusted_limit_krw
+    sales_view["base_monthly_limit_krw"] = base_monthly_limit_krw
+    sales_view["engine_adjusted_limit_krw"] = engine_adjusted_limit_krw
+    sales_view["learning_operational_limit_krw"] = weekly_limit_krw
 
-    margin_amount_krw = recalculate_margin_amount(weekly_limit_krw, sales_view.get("estimated_margin_rate_pct"))
-    compliant_margin_amount_krw = recalculate_margin_amount(
+    learning_margin_amount_krw = recalculate_margin_amount(weekly_limit_krw, sales_view.get("estimated_margin_rate_pct"))
+    learning_compliant_margin_amount_krw = recalculate_margin_amount(
         weekly_limit_krw, sales_view.get("estimated_compliant_margin_rate_pct")
     )
-    if margin_amount_krw is not None:
-        sales_view["estimated_margin_amount_krw"] = margin_amount_krw
-    if compliant_margin_amount_krw is not None:
-        sales_view["estimated_compliant_margin_amount_krw"] = compliant_margin_amount_krw
+    if learning_margin_amount_krw is not None:
+        sales_view["learning_operational_margin_amount_krw"] = learning_margin_amount_krw
+    if learning_compliant_margin_amount_krw is not None:
+        sales_view["learning_operational_compliant_margin_amount_krw"] = learning_compliant_margin_amount_krw
 
-    if sales_view.get("key_points"):
-        sales_view["key_points"] = [
-            f"예상 한도는 {format_krw(weekly_limit_krw)} 수준입니다.",
-            f"예상 마진율은 {format_percent(sales_view.get('estimated_margin_rate_pct'))} 수준입니다.",
-            f"기준 금액 {format_krw(weekly_limit_krw)}으로 보면 예상 마진액은 {format_krw(margin_amount_krw)}입니다.",
-        ]
     normalized["sales_view"] = sales_view
-
-    limit_block = dict(normalized.get("limit") or {})
-    limit_block["single_delivery_limit_krw"] = weekly_limit_krw
-    normalized["limit"] = limit_block
-
-    normalized["sales_summary"] = replace_learning_display_amounts(
-        str(normalized.get("sales_summary") or ""),
-        weekly_limit_krw,
-        margin_amount_krw,
-    )
-    normalized["sales_email_draft"] = replace_learning_display_amounts(
-        str(normalized.get("sales_email_draft") or ""),
-        weekly_limit_krw,
-        margin_amount_krw,
-    )
     return normalized
 
 
@@ -2062,6 +2804,10 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
     credit_grade = normalize_space(state.get("reportCreditGrade") or state.get("financialFilterSignal"))
     annual_sales, operating_profit, net_profit = latest_financial_values(state)
     report_financial_summary = state.get("reportFinancialSummary") or {}
+    reported_monthly_limit_krw = parse_krw_text_to_int(
+        state.get("reportMonthlyCreditLimit") or state.get("baseMonthlyLimitValue")
+    )
+    base_monthly_limit_krw = reported_monthly_limit_krw or (annual_sales / 12 * 0.7 if annual_sales else None)
     business_years = years_since(state.get("reportIncorporatedDate"))
     raw_tenor_days = state.get("requestedTenorDays")
     raw_tenor_months = state.get("requestedTenorMonths")
@@ -2090,7 +2836,8 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
 
     applicant_grade_score = grade_to_signal_score(credit_grade, 55.0)
     buyer_grade_score = buyer_signal_score(buyer_name)
-    data_support_bonus = 8.0 if state.get("consultingValidationSummary") else 0.0
+    consultation_validation_summary = state.get("consultingValidationSummary") or state.get("meetingValidationSummary")
+    data_support_bonus = 8.0 if consultation_validation_summary else 0.0
     internal_support_bonus = 6.0 if state.get("internalReviewValidationSummary") else 0.0
     file_support_bonus = 5.0 if state.get("supportingDocumentSummary") else 0.0
     extra_support_bonus = 4.0 if state.get("additionalInfoSummary") else 0.0
@@ -2103,6 +2850,7 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
     compliance_issue_text = " ".join(
         [
             *[str(item) for item in (state.get("consultingIssues") or [])],
+            *[str(item) for item in (state.get("meetingIssues") or [])],
             *[str(item) for item in (state.get("internalReviewIssues") or [])],
             *[str(item) for item in (state.get("supportingDocumentIssues") or [])],
             *[str(item) for item in (state.get("additionalInfoIssues") or [])],
@@ -2114,13 +2862,46 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
     applicant_external_base = max(45.0, applicant_grade_score)
     buyer_external_base = max(45.0, buyer_grade_score)
 
+    # ── data_quality ──────────────────────────────────────────────────────
+    _KEY_FIELDS = [
+        "companyName", "representativeName", "businessNumber",
+        "creditGrade", "annualSales", "buyerName", "supplierName",
+        "requestedTenorDays", "reportIncorporatedDate",
+    ]
+    missing_fields: list[str] = []
+    defaulted_fields: list[str] = []
+    if not normalize_space(state.get("companyName")):
+        missing_fields.append("companyName")
+    if not normalize_space(state.get("representativeName")):
+        missing_fields.append("representativeName")
+    if not normalize_space(state.get("businessNumber")):
+        missing_fields.append("businessNumber")
+    if not credit_grade:
+        missing_fields.append("creditGrade")
+    if not annual_sales:
+        missing_fields.append("annualSales")
+        defaulted_fields.append("annualSales→0")
+    if not normalize_space(state.get("buyerName")):
+        missing_fields.append("buyerName")
+        defaulted_fields.append("buyerName→'매출처 확인 필요'")
+    if not normalize_space(state.get("supplierName")):
+        missing_fields.append("supplierName")
+        defaulted_fields.append("supplierName→'매입처 확인 필요'")
+    if raw_tenor_days is None:
+        missing_fields.append("requestedTenorDays")
+        defaulted_fields.append("requestedTenorDays→60")
+    if not state.get("reportIncorporatedDate"):
+        missing_fields.append("reportIncorporatedDate")
+        defaulted_fields.append("reportIncorporatedDate→businessYears=0")
+    data_confidence = round(1.0 - len(missing_fields) / len(_KEY_FIELDS), 2)
+
     return {
         "analysis_type": "flowpay_underwriting",
         "engine_version": normalize_space(state.get("engineVersion")) or "v.local.learning",
         "company_name": company_name,
         "industry_profile": industry_profile,
         "requested_tenor_months": requested_tenor_months,
-        "requested_purchase_amount_krw": annual_sales / 12 * 0.7 if annual_sales else None,
+        "requested_purchase_amount_krw": base_monthly_limit_krw,
         "financials": {
             "annual_sales": annual_sales or 0,
             "operating_profit": operating_profit or 0,
@@ -2150,6 +2931,7 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
             "purchase_supplier_name": supplier_name,
             "sales_destination_name": buyer_name,
             "consulting_report_url": state.get("consultingReportUrl") or "",
+            "meeting_report_url": state.get("meetingReportUrl") or "",
             "internal_review_url": state.get("internalReviewUrl") or "",
         },
         "api_enrichment": {
@@ -2228,7 +3010,7 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
                 "payment": {
                     "payment_history": 55.0 if buyer_name == "매출처 확인 필요" else 72.0,
                     "settlement_stability": 58.0 if buyer_name == "매출처 확인 필요" else 70.0,
-                    "invoice_acceptance_clarity": 58.0 if not state.get("consultingValidationSummary") else 72.0,
+                    "invoice_acceptance_clarity": 58.0 if not consultation_validation_summary else 72.0,
                     "dispute_setoff_risk": 52.0 if buyer_name == "매출처 확인 필요" else 65.0,
                     "concentration_risk": 50.0 if buyer_name == "매출처 확인 필요" else 62.0,
                     "delay_pattern": 52.0 if buyer_name == "매출처 확인 필요" else 68.0,
@@ -2241,6 +3023,11 @@ def build_learning_evaluation_payload(state: dict[str, Any]) -> dict[str, Any]:
                     "buyer_funding_signal": 62.0 if buyer_name != "매출처 확인 필요" else 50.0,
                 },
             },
+        },
+        "data_quality": {
+            "missing_fields": missing_fields,
+            "defaulted_fields": defaulted_fields,
+            "data_confidence": data_confidence,
         },
         "transaction": {
             "scores": {
@@ -2295,6 +3082,14 @@ def state_patch_from_context(context: dict[str, Any]) -> dict[str, Any]:
         context.get("industry_fit", {}).get("requested_tenor_days")
         or (requested_tenor_months * 30 if requested_tenor_months else None)
     )
+    base_monthly_limit_krw = sales_view.get("base_monthly_limit_krw") or sales_view.get("reference_purchase_amount_krw")
+    engine_adjusted_limit_krw = (
+        sales_view.get("engine_adjusted_limit_krw")
+        or sales_view.get("raw_estimated_limit_krw")
+        or sales_view.get("estimated_limit_krw")
+    )
+    learning_operational_limit_krw = sales_view.get("learning_operational_limit_krw")
+    engine_adjusted_limit_text = format_krw(engine_adjusted_limit_krw)
 
     return {
         "engineVersion": context.get("engine_version", "업로드 결과"),
@@ -2308,7 +3103,15 @@ def state_patch_from_context(context: dict[str, Any]) -> dict[str, Any]:
         "requestedTenorMonths": requested_tenor_months,
         "requestedTenorDays": requested_tenor_days,
         "recommendedTenorText": format_tenor_text(requested_tenor_months, requested_tenor_days),
-        "estimatedLimitValue": format_krw(sales_view.get("estimated_limit_krw")),
+        "reportMonthlyCreditLimit": format_krw(base_monthly_limit_krw),
+        "baseMonthlyLimitLabel": "기준 월간 적정 한도",
+        "baseMonthlyLimitValue": format_krw(base_monthly_limit_krw),
+        "estimatedLimitLabel": "엔진 보정 한도",
+        "estimatedLimitValue": engine_adjusted_limit_text,
+        "engineAdjustedLimitLabel": "엔진 보정 한도",
+        "engineAdjustedLimitValue": engine_adjusted_limit_text,
+        "learningOperationalLimitLabel": "학습모드 운영 한도(주간 1회 기준)",
+        "learningOperationalLimitValue": format_krw(learning_operational_limit_krw),
         "estimatedMarginValue": format_percent(sales_view.get("estimated_margin_rate_pct")),
         "financialFilterSignal": context.get("applicant", {}).get("grade") or context.get("overall", {}).get("grade"),
         "cashflowSignal": risk_notes[0] if risk_notes else "확인 필요",
@@ -2317,7 +3120,7 @@ def state_patch_from_context(context: dict[str, Any]) -> dict[str, Any]:
             "executive": (
                 f"{context.get('company_name', '기업')} 관련 영업 참고 결과는 "
                 f"'{sales_view.get('recommendation', '추가 확인 필요')}'입니다. "
-                f"예상 한도는 {format_krw(sales_view.get('estimated_limit_krw'))} 수준입니다."
+                f"엔진 보정 한도는 {engine_adjusted_limit_text} 수준입니다."
             ),
             "company": (
                 f"신청업체 참고등급은 {context.get('applicant', {}).get('grade', '-')}, "
@@ -2326,7 +3129,7 @@ def state_patch_from_context(context: dict[str, Any]) -> dict[str, Any]:
                 f"통합 참고등급은 {context.get('overall', {}).get('grade', '-')}입니다."
             ),
             "structure": (
-                f"예상 한도는 {format_krw(sales_view.get('estimated_limit_krw'))}, "
+                f"엔진 보정 한도는 {engine_adjusted_limit_text}, "
                 f"예상 마진율은 {format_percent(sales_view.get('estimated_margin_rate_pct'))} 수준입니다."
             ),
             "risks": " ".join(risk_notes) if risk_notes else "",
@@ -2490,6 +3293,7 @@ def learning_case_detail(case_id: str) -> dict[str, Any]:
         "case": serialize_learning_case(case),
         "state_patch": build_learning_case_state(case),
         "result_snapshot": case.get("result_snapshot") or {},
+        "detail_report": build_evaluation_detail_report(case),
     }
 
 
@@ -2508,7 +3312,15 @@ async def parse_web_context(file: UploadFile = File(...)) -> dict[str, Any]:
 
 
 @app.post("/api/report/flowscore-parse")
-async def parse_flowscore_report(file: UploadFile = File(...)) -> dict[str, Any]:
+async def parse_flowscore_report(
+    file: UploadFile = File(...),
+    auto_notion_lookup: bool = Form(False),
+) -> dict[str, Any]:
+    """FlowScore PDF를 파싱한다.
+
+    auto_notion_lookup=True 시, 추출된 회사명·사업자번호로 Notion 3종 보고서를
+    자동 조회·파싱하여 응답에 notion_lookup 포함.
+    """
     raw_bytes = await file.read()
     if not raw_bytes:
         raise HTTPException(status_code=400, detail="리포트 파일이 비어 있습니다.")
@@ -2519,9 +3331,52 @@ async def parse_flowscore_report(file: UploadFile = File(...)) -> dict[str, Any]
         raise HTTPException(status_code=400, detail="FlowScore 리포트를 읽지 못했습니다.") from exc
 
     state_patch = apply_report_enrichment({}, parsed)
-    return {
+    response: dict[str, Any] = {
         "parsed_report": parsed,
         "state_patch": state_patch,
+    }
+
+    if auto_notion_lookup:
+        company_name = normalize_space(
+            parsed.get("company_name") or state_patch.get("companyName") or ""
+        )
+        business_number = normalize_space(
+            parsed.get("business_number") or state_patch.get("businessNumber") or ""
+        ) or None
+        lookup = notion_auto_lookup(company_name, business_number)
+        notion_state_patch = build_notion_lookup_state_patch(lookup)
+        # FlowScore state_patch와 notion 결과 병합 (FlowScore가 우선)
+        merged_patch = {**notion_state_patch, **state_patch}
+        response["state_patch"] = merged_patch
+        response["notion_lookup"] = lookup
+        response["missing_notion_reports"] = lookup.get("missing_notion_reports") or []
+        response["requires_user_decision"] = lookup.get("requires_user_decision", False)
+
+    return response
+
+
+@app.post("/api/notion/auto-lookup-and-parse")
+async def notion_auto_lookup_and_parse(
+    company_name: str = Form(...),
+    business_number: str = Form(""),
+) -> dict[str, Any]:
+    """회사명·사업자번호로 Notion 보고서 3종을 자동 조회·파싱한다.
+
+    FlowScore 업로드 없이 온디맨드 재조회 시 사용.
+    found_and_parsed 항목의 state_patch를 포함해 반환.
+    """
+    company_name = company_name.strip()
+    biz_num = business_number.strip() or None
+    if not company_name:
+        raise HTTPException(status_code=400, detail="company_name이 비어 있습니다.")
+
+    lookup = notion_auto_lookup(company_name, biz_num)
+    notion_state_patch = build_notion_lookup_state_patch(lookup)
+    return {
+        "notion_lookup": lookup,
+        "state_patch": notion_state_patch,
+        "missing_notion_reports": lookup.get("missing_notion_reports") or [],
+        "requires_user_decision": lookup.get("requires_user_decision", False),
     }
 
 
@@ -2546,9 +3401,38 @@ async def parse_consulting_report(
     except requests.RequestException as exc:
         raise HTTPException(status_code=400, detail="상담보고서 링크를 불러오지 못했습니다.") from exc
 
-    state_patch = apply_consulting_enrichment({}, parsed)
+    state_patch = apply_consulting_enrichment({}, parsed, state_prefix="consulting", source_display_label="상담보고서")
     return {
         "parsed_consulting_report": parsed,
+        "state_patch": state_patch,
+    }
+
+
+@app.post("/api/meeting/parse")
+async def parse_meeting_report(
+    meeting_url: str = Form(...),
+    company_name: str = Form(""),
+    business_number: str = Form(""),
+    representative_name: str = Form(""),
+) -> dict[str, Any]:
+    meeting_url = meeting_url.strip()
+    if not meeting_url:
+        raise HTTPException(status_code=400, detail="미팅보고서 링크가 비어 있습니다.")
+
+    try:
+        parsed = parse_consulting_report_url(
+            meeting_url,
+            fallback_company_name=company_name.strip() or None,
+            fallback_business_number=business_number.strip() or None,
+            fallback_representative_name=representative_name.strip() or None,
+            source_label="미팅보고서",
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=400, detail="미팅보고서 링크를 불러오지 못했습니다.") from exc
+
+    state_patch = apply_consulting_enrichment({}, parsed, state_prefix="meeting", source_display_label="미팅보고서")
+    return {
+        "parsed_meeting_report": parsed,
         "state_patch": state_patch,
     }
 
@@ -2714,7 +3598,7 @@ async def extract_exhibition_fields(
 
 @app.post("/api/evaluate")
 async def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
-    framework = load_json(FRAMEWORK_PATH)
+    framework = load_active_framework()
     analysis_type = payload.get("analysis_type")
     if analysis_type != "flowpay_underwriting":
         raise HTTPException(status_code=400, detail="현재는 flowpay_underwriting만 지원합니다.")
@@ -2725,18 +3609,29 @@ async def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
         "result": result,
         "web_context": context,
         "state_patch": state_patch_from_context(context),
+        "framework_meta": get_active_framework_meta(),
     }
 
 
 @app.post("/api/learning/evaluate")
 async def evaluate_learning_mode(payload: dict[str, Any]) -> dict[str, Any]:
     state = payload.get("state") or {}
-    framework = load_json(FRAMEWORK_PATH)
+    framework = load_active_framework()
     engine_input = build_learning_evaluation_payload(state)
     result = evaluate_flowpay_underwriting(engine_input, framework)
     context = normalize_learning_context_for_display(build_web_context(engine_input, result))
     state_patch = apply_learning_engine_state_patch(state, context)
     registry = record_live_learning_case(state, state_patch, engine_input, result, context)
+    dq = engine_input.get("data_quality") or {}
+    data_confidence = float(dq.get("data_confidence", 1.0))
+    data_quality_warning = None
+    if data_confidence < 0.7:
+        data_quality_warning = {
+            "level": "conditional",
+            "message": "조건부 평가 — 자료 보완 필요",
+            "data_confidence": data_confidence,
+            "missing_fields": dq.get("missing_fields", []),
+        }
     return {
         "engine_input": engine_input,
         "result": result,
@@ -2744,6 +3639,8 @@ async def evaluate_learning_mode(payload: dict[str, Any]) -> dict[str, Any]:
         "state_patch": state_patch,
         "dashboard_summary": dashboard_summary(),
         "registry_size": len(registry.get("cases", [])),
+        "framework_meta": get_active_framework_meta(),
+        "data_quality_warning": data_quality_warning,
     }
 
 
@@ -2776,28 +3673,10 @@ def apply_learning_engine_state_patch(
             state_patch.get("requestedTenorMonths"),
             state.get("requestedTenorDays"),
         )
-    sales_view = context.get("sales_view", {}) or {}
-    if sales_view.get("reference_purchase_amount_source") == "weekly_learning_limit":
-        weekly_limit_krw = truncate_below_million(sales_view.get("estimated_limit_krw"))
-    else:
-        weekly_limit_krw = weekly_learning_limit_from_engine(sales_view.get("estimated_limit_krw"))
-    if weekly_limit_krw:
-        weekly_limit_text = format_krw(weekly_limit_krw)
-        state_patch["estimatedLimitValue"] = weekly_limit_text
-        proposal = dict(state_patch.get("proposal") or {})
-        if proposal.get("executive"):
-            proposal["executive"] = re.sub(
-                r"예상 한도는 .*? 수준입니다\.",
-                f"예상 한도는 {weekly_limit_text} 수준입니다.",
-                proposal["executive"],
-            )
-        if proposal.get("structure"):
-            proposal["structure"] = re.sub(
-                r"예상 한도는 .*?,",
-                f"예상 한도는 {weekly_limit_text},",
-                proposal["structure"],
-            )
-        state_patch["proposal"] = proposal
+    if not parse_krw_text_to_int(state_patch.get("baseMonthlyLimitValue")) and state.get("reportMonthlyCreditLimit"):
+        state_patch["reportMonthlyCreditLimit"] = normalize_limit_display_text(state.get("reportMonthlyCreditLimit"))
+        state_patch["baseMonthlyLimitLabel"] = "기준 월간 적정 한도"
+        state_patch["baseMonthlyLimitValue"] = normalize_limit_display_text(state.get("reportMonthlyCreditLimit"))
     learning_status = learning_status_from_components(learning_material_components(state))
     state_patch["learningEligible"] = learning_status_label(learning_status)
     state_patch["learningWeight"] = (
@@ -2829,6 +3708,8 @@ def refresh_learning_case_from_sources(case: dict[str, Any], framework: dict[str
     base_state["learningFlowScoreFileName"] = flow_score_file_name
     if normalize_space(sources.get("consulting_report_url")):
         base_state["consultingReportUrl"] = normalize_space(sources.get("consulting_report_url"))
+    if normalize_space(sources.get("meeting_report_url")):
+        base_state["meetingReportUrl"] = normalize_space(sources.get("meeting_report_url"))
     if normalize_space(sources.get("consulting_file_name")):
         base_state["learningConsultingFileName"] = normalize_space(sources.get("consulting_file_name"))
     if normalize_space(sources.get("internal_review_url")):
@@ -2842,6 +3723,10 @@ def refresh_learning_case_from_sources(case: dict[str, Any], framework: dict[str
         "consultingSummary",
         "consultingCrossChecks",
         "consultingIssues",
+        "meetingValidationSummary",
+        "meetingSummary",
+        "meetingCrossChecks",
+        "meetingIssues",
         "internalReviewValidationSummary",
         "internalReviewSummary",
         "internalReviewCrossChecks",
@@ -2875,7 +3760,7 @@ def refresh_registry_cases_from_sources(registry: dict[str, Any], path: Path) ->
     cases = registry.get("cases", [])
     if not cases:
         return registry
-    framework = load_json(FRAMEWORK_PATH)
+    framework = load_active_framework()
     refreshed_cases = [refresh_learning_case_from_sources(case, framework) for case in cases]
     refreshed_registry = dict(registry)
     refreshed_registry["cases"] = refreshed_cases

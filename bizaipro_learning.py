@@ -14,6 +14,7 @@ from engine import FRAMEWORK_PATH, evaluate_flowpay_underwriting, load_json
 BASE_DIR = Path(__file__).resolve().parent
 REGISTRY_PATH = BASE_DIR / "data" / "bizaipro_learning_registry.json"
 UPDATES_DIR = BASE_DIR / "outputs" / "bizaipro_updates"
+ACTIVE_FRAMEWORK_PATH = BASE_DIR / "data" / "active_framework.json"
 BASELINE_VERSION = "v.1.0.00"
 
 
@@ -56,7 +57,51 @@ def _learning_context(input_data: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+_DQ_KEY_FIELDS = [
+    "companyName", "representativeName", "businessNumber",
+    "creditGrade", "annualSales", "buyerName", "supplierName",
+    "requestedTenorDays", "reportIncorporatedDate",
+]
+
+
+def ensure_data_quality(input_data: dict[str, Any]) -> dict[str, Any]:
+    """CLI 입력 JSON에 data_quality 필드가 없으면 자동 계산해 삽입."""
+    if "data_quality" in input_data:
+        return input_data
+    missing: list[str] = []
+    defaulted: list[str] = []
+    for field in _DQ_KEY_FIELDS:
+        val = input_data.get(field)
+        if val is None or (isinstance(val, str) and not val.strip()):
+            missing.append(field)
+            # Known defaults
+            defaults = {
+                "annualSales": "annualSales→0",
+                "buyerName": "buyerName→'매출처 확인 필요'",
+                "supplierName": "supplierName→'매입처 확인 필요'",
+                "requestedTenorDays": "requestedTenorDays→60",
+                "reportIncorporatedDate": "reportIncorporatedDate→businessYears=0",
+            }
+            if field in defaults:
+                defaulted.append(defaults[field])
+    confidence = round(1.0 - len(missing) / len(_DQ_KEY_FIELDS), 2)
+    patched = dict(input_data)
+    patched["data_quality"] = {
+        "missing_fields": missing,
+        "defaulted_fields": defaulted,
+        "data_confidence": confidence,
+    }
+    return patched
+
+
 def compute_learning_weight(input_data: dict[str, Any]) -> dict[str, Any]:
+    """Compute learning weight aligned with the web update_eligible criteria (FBU-VAL-0006 F3).
+
+    Previously: qualified = flow_score AND consultation  (CLI only)
+    Now:        evaluation_ready = flow_score AND consultation
+                update_eligible  = evaluation_ready AND internal_review  (same as web)
+                qualified        = update_eligible  (unified definition)
+    """
     context = _learning_context(input_data)
     flow_score = bool(context.get("flow_score_report_submitted", False))
     consultation = bool(context.get("consultation_report_submitted", False))
@@ -71,9 +116,12 @@ def compute_learning_weight(input_data: dict[str, Any]) -> dict[str, Any]:
         "additional_sources": min(additional_count, 3) * 0.05,
     }
     total_weight = round(sum(components.values()), 2)
-    qualified = flow_score and consultation
+    evaluation_ready = flow_score and consultation
+    update_eligible = evaluation_ready and internal_review
     return {
-        "qualified": qualified,
+        "evaluation_ready": evaluation_ready,
+        "update_eligible": update_eligible,
+        "qualified": update_eligible,  # unified: qualified == update_eligible
         "total_weight": total_weight,
         "components": components,
         "additional_source_count": additional_count,
@@ -107,6 +155,7 @@ def record_learning_case(input_path: Path, label: str | None = None, registry_pa
     if input_data.get("analysis_type") != "flowpay_underwriting":
         raise ValueError("BizAiPro learning only supports flowpay_underwriting inputs.")
 
+    input_data = ensure_data_quality(input_data)
     result = evaluate_flowpay_underwriting(input_data, framework)
     learning_meta = compute_learning_weight(input_data)
 
@@ -292,6 +341,10 @@ def run_update(registry_path: Path = REGISTRY_PATH, output_dir: Path = UPDATES_D
     version_dir = output_dir / new_version
     version_dir.mkdir(parents=True, exist_ok=True)
     (version_dir / "comparison_report.md").write_text(report, encoding="utf-8")
+    # framework_snapshot: promote 전까지 라이브 API에 적용되지 않는 대기 상태
+    (version_dir / "framework_snapshot.json").write_text(
+        json.dumps(updated_framework, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     (version_dir / "update_summary.json").write_text(
         json.dumps(
             {
@@ -321,6 +374,7 @@ def run_update(registry_path: Path = REGISTRY_PATH, output_dir: Path = UPDATES_D
     )
     save_registry(registry, registry_path)
 
+    snapshot_path = version_dir / "framework_snapshot.json"
     return {
         "update_generated": True,
         "previous_version": previous_version,
@@ -328,6 +382,59 @@ def run_update(registry_path: Path = REGISTRY_PATH, output_dir: Path = UPDATES_D
         "progress": progress.__dict__,
         "weighting": update_summary,
         "output_dir": str(version_dir),
+        "snapshot_path": str(snapshot_path),
+        "promote_hint": f"python3 bizaipro_learning.py promote --version {new_version}",
+    }
+
+
+def run_promote(version: str | None = None, output_dir: Path = UPDATES_DIR) -> dict[str, Any]:
+    """스냅샷을 active_framework.json으로 승격(promote)해 라이브 API에 적용."""
+    registry = load_registry()
+
+    # 버전 미지정 시 최신 업데이트 사용
+    if version is None:
+        updates = registry.get("updates") or []
+        if not updates:
+            return {"promoted": False, "reason": "promote 가능한 업데이트가 없습니다. run update 먼저 실행하세요."}
+        version = updates[-1]["version"]
+
+    snapshot_path = output_dir / version / "framework_snapshot.json"
+    if not snapshot_path.exists():
+        return {"promoted": False, "reason": f"framework_snapshot.json 없음: {snapshot_path}"}
+
+    snapshot = load_json(snapshot_path)
+
+    # Shadow evaluation: 직전 qualified 케이스 최대 3건으로 before/after 비교
+    qualifying_cases = [c for c in registry["cases"] if c["learning"]["qualified"]][-3:]
+    shadow = []
+    for case in qualifying_cases:
+        before = case.get("result_snapshot")
+        after = evaluate_flowpay_underwriting(case["input_data"], snapshot)
+        if before:
+            delta = round(float(after["overall"]["score"]) - float(before["overall"]["score"]), 2)
+            shadow.append({
+                "case_id": case["id"],
+                "label": case["label"],
+                "before_score": round(float(before["overall"]["score"]), 2),
+                "after_score": round(float(after["overall"]["score"]), 2),
+                "delta": delta,
+                "before_rec": before["sales_view"]["recommendation"],
+                "after_rec": after["sales_view"]["recommendation"],
+            })
+
+    # promote: active_framework.json 갱신
+    ACTIVE_FRAMEWORK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with ACTIVE_FRAMEWORK_PATH.open("w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+    registry["active_version"] = version
+    save_registry(registry)
+
+    return {
+        "promoted": True,
+        "version": version,
+        "active_framework_path": str(ACTIVE_FRAMEWORK_PATH),
+        "shadow_evaluation": shadow,
     }
 
 
@@ -353,6 +460,9 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("status", help="Show current learning progress.")
     subparsers.add_parser("update", help="Run BizAiPro update if learning threshold is met.")
+
+    promote = subparsers.add_parser("promote", help="Promote a framework snapshot to active_framework.json.")
+    promote.add_argument("--version", type=str, default=None, help="Version to promote (default: latest).")
     return parser.parse_args()
 
 
@@ -370,6 +480,11 @@ def main() -> None:
 
     if args.command == "update":
         result = run_update()
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
+    if args.command == "promote":
+        result = run_promote(version=getattr(args, "version", None))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
 

@@ -96,12 +96,12 @@
                       <select id="training-engine-select"></select>
                     </div>
                   </div>
-                <div class="mode-card control-card">
-                  <strong>상담리포트</strong>
-                  <div class="field">
-                    <input id="learning-consulting-link" type="url" placeholder="노션 페이지 링크 입력" />
+                  <div class="mode-card control-card">
+                    <strong>상담리포트</strong>
+                    <div class="field">
+                      <input id="learning-consulting-link" type="url" placeholder="노션 페이지 링크 입력" />
+                    </div>
                   </div>
-                </div>
                 </div>
 
                 <div class="mode-form-grid">
@@ -115,6 +115,12 @@
                     <strong>상담보고서</strong>
                     <div class="field">
                       <input id="learning-consulting-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt" />
+                    </div>
+                  </div>
+                  <div class="mode-card">
+                    <strong>미팅보고서</strong>
+                    <div class="field">
+                      <input id="learning-meeting-link" type="url" placeholder="노션 링크 입력" />
                     </div>
                   </div>
                   <div class="mode-card">
@@ -366,6 +372,7 @@
         setValue("exhibition-industry-item", state.industryItem);
         setValue("exhibition-contact-name", state.representativeName);
         setValue("learning-consulting-link", state.consultingReportUrl);
+        setValue("learning-meeting-link", state.meetingReportUrl);
         setValue("learning-internal-link", state.internalReviewUrl);
         setValue("learning-extra-info", state.learningExtraInfo);
         setValue("exhibition-extra-info", state.exhibitionExtraInfo);
@@ -576,7 +583,7 @@
 
       function clearLearningInputs() {
         const byId = (id) => document.getElementById(id);
-        ["learning-consulting-link", "learning-internal-link", "learning-extra-info"].forEach((id) => {
+        ["learning-consulting-link", "learning-meeting-link", "learning-internal-link", "learning-extra-info"].forEach((id) => {
           const el = byId(id);
           if (el) el.value = "";
         });
@@ -636,6 +643,7 @@
 
         syncField("learning-internal-link", "internalReviewUrl");
         syncField("learning-consulting-link", "consultingReportUrl");
+        syncField("learning-meeting-link", "meetingReportUrl");
         syncField("learning-extra-info", "learningExtraInfo");
         syncField("exhibition-info-url", "exhibitionInfoUrl");
         syncField("exhibition-website-url", "website");
@@ -688,7 +696,9 @@
           const processing = createProcessingSession("learning", [
             ["engine", "학습시킬 엔진"],
             ["flowscore", "플로우스코어 리포트"],
+            ["notionLookup", "노션 보고서 자동 조회"],
             ["consultingLink", "상담리포트 노션 링크"],
+            ["meetingLink", "미팅보고서 노션 링크"],
             ["consultingFile", "상담보고서 파일"],
             ["internalLink", "내부심사보고서 노션 링크"],
             ["extraInfo", "추가 정보"],
@@ -698,8 +708,14 @@
           try {
             processing.start("입력값 확인 중", 0);
             let state = shared.resetForLearningMode(shared.getStoredState());
-            state.consultingReportUrl = document.getElementById("learning-consulting-link").value.trim();
-            state.internalReviewUrl = document.getElementById("learning-internal-link").value.trim();
+
+            // 수동 입력 URL — 자동 조회 결과보다 항상 우선 적용
+            const manualConsultingUrl = document.getElementById("learning-consulting-link").value.trim();
+            const manualMeetingUrl = document.getElementById("learning-meeting-link").value.trim();
+            const manualInternalUrl = document.getElementById("learning-internal-link").value.trim();
+            state.consultingReportUrl = manualConsultingUrl;
+            state.meetingReportUrl = manualMeetingUrl;
+            state.internalReviewUrl = manualInternalUrl;
             state.learningExtraInfo = document.getElementById("learning-extra-info").value.trim();
 
             const flowScoreFile = document.getElementById("learning-flowscore-file").files?.[0];
@@ -708,9 +724,11 @@
 
             processing.update("engine", "done", `${selectedEngineLabel} 선택 완료`);
             processing.update("flowscore", flowScoreFile ? "running" : "skipped", flowScoreFile ? `${flowScoreFile.name} 파일명 확인 중` : "업로드된 파일이 없습니다.");
-            processing.update("consultingLink", state.consultingReportUrl ? "running" : "skipped", state.consultingReportUrl ? "노션 링크 확인 중" : "입력된 링크가 없습니다.");
+            processing.update("notionLookup", flowScoreFile ? "running" : "skipped", flowScoreFile ? "플로우스코어 읽기 후 자동 조회 예정" : "플로우스코어 없음 — 자동 조회 건너뜀");
+            processing.update("consultingLink", manualConsultingUrl ? "running" : "skipped", manualConsultingUrl ? "수동 입력 링크 확인 중" : "입력된 링크가 없습니다.");
+            processing.update("meetingLink", manualMeetingUrl ? "running" : "skipped", manualMeetingUrl ? "수동 입력 링크 확인 중" : "입력된 링크가 없습니다.");
             processing.update("consultingFile", consultingFile ? "running" : "skipped", consultingFile ? `${consultingFile.name} 파일명 확인 중` : "업로드된 파일이 없습니다.");
-            processing.update("internalLink", state.internalReviewUrl ? "running" : "skipped", state.internalReviewUrl ? "노션 링크 확인 중" : "입력된 링크가 없습니다.");
+            processing.update("internalLink", manualInternalUrl ? "running" : "skipped", manualInternalUrl ? "수동 입력 링크 확인 중" : "입력된 링크가 없습니다.");
             processing.update("extraInfo", state.learningExtraInfo ? "running" : "skipped", state.learningExtraInfo ? "추가 메모 구조화 준비 중" : "입력된 추가 정보가 없습니다.");
 
             processing.setStage("자료 읽는 중", 1);
@@ -721,10 +739,127 @@
               state.learningFlowScoreFileName = flowScoreFile.name;
               processing.update("flowscore", "done", `${flowScoreFile.name} 읽기 완료`);
             }
-            if (state.consultingReportUrl) {
+
+            // ── 노션 보고서 자동 조회 (FBU-VAL-0010 §6 규칙 1~8) ──────────────
+            // FlowScore에서 기업명이 추출된 경우 Notion DB를 자동 조회하여 3종 보고서를
+            // 파싱한다. found_and_parsed 항목만 primary URL/summary 필드에 반영된다.
+            // 수동 입력 URL은 자동 조회 결과를 덮어쓴다.
+            // [평가 취소] 선택 시 평가/저장 체인 전체를 중단한다.
+            let autoFoundUrls = {};  // type → page_url (재파싱 방지용)
+            if (flowScoreFile && state.companyName) {
+              processing.update("notionLookup", "running", `'${state.companyName}' 노션 보고서 자동 조회 중`);
+              try {
+                const lookupFd = new FormData();
+                lookupFd.append("company_name", state.companyName);
+                if (state.businessNumber) lookupFd.append("business_number", state.businessNumber);
+                const lookupResp = await fetch("/api/notion/auto-lookup-and-parse", { method: "POST", body: lookupFd });
+                if (!lookupResp.ok) throw new Error(`Notion 조회 응답 오류 (${lookupResp.status})`);
+                const lookupData = await lookupResp.json();
+
+                const notionLookup = lookupData.notion_lookup || {};
+                const notionStatePatch = lookupData.state_patch || {};
+                const requiresUserDecision = lookupData.requires_user_decision || false;
+                const missingNotionReports = lookupData.missing_notion_reports || [];
+
+                // found_and_parsed 항목 URL 추적 (자동 파싱 완료 → 재파싱 건너뜀)
+                ["consultation", "meeting", "internal_review"].forEach(rtype => {
+                  if (notionLookup[rtype]?.status === "found_and_parsed") {
+                    autoFoundUrls[rtype] = notionLookup[rtype].page_url;
+                  }
+                });
+
+                // 자동 조회 결과 state에 반영 (found_and_parsed만 primary URL/summary 포함)
+                Object.assign(state, notionStatePatch);
+
+                // 수동 입력 URL이 있으면 자동 조회 결과를 덮어쓰고 재파싱 추적에서 제거
+                if (manualConsultingUrl) { state.consultingReportUrl = manualConsultingUrl; delete autoFoundUrls.consultation; }
+                if (manualMeetingUrl)    { state.meetingReportUrl    = manualMeetingUrl;    delete autoFoundUrls.meeting; }
+                if (manualInternalUrl)  { state.internalReviewUrl   = manualInternalUrl;   delete autoFoundUrls.internal_review; }
+
+                // 조회 메타데이터 저장 (결과서의 notion_partial_evaluation_warning 배너용)
+                // 수동 입력 URL이 있는 유형은 missingNotionReports에서 즉시 제거
+                // → 게이트 모달과 결과서 배너 모두 수동 보완 여부를 올바르게 반영
+                state.notionLookupDetail   = notionLookup;   // full object (shape: FBU-VAL-0013 §3.3)
+                state.missingNotionReports = missingNotionReports.filter(rtype => {
+                  if (rtype === "consultation"    && manualConsultingUrl) return false;
+                  if (rtype === "meeting"         && manualMeetingUrl)    return false;
+                  if (rtype === "internal_review" && manualInternalUrl)  return false;
+                  return true;
+                });
+
+                const foundCount = Object.values(notionLookup).filter(v => v?.status === "found_and_parsed").length;
+                processing.update("notionLookup", "done",
+                  foundCount > 0 ? `자동 조회 완료 (${foundCount}건 파싱 성공)` : "자동 조회 완료 (파싱된 보고서 없음)"
+                );
+
+                // Promise gate: 누락 보고서가 있고 수동 입력으로도 미보완된 경우
+                // [평가 진행] → resolve() → 계속 / [평가 취소] → reject("NOTION_LOOKUP_CANCELLED") → 중단
+                if (requiresUserDecision) {
+                  const stillMissing = missingNotionReports.filter(rtype => {
+                    if (rtype === "consultation"   && manualConsultingUrl) return false;
+                    if (rtype === "meeting"        && manualMeetingUrl)    return false;
+                    if (rtype === "internal_review"&& manualInternalUrl)  return false;
+                    return true;
+                  });
+                  if (stillMissing.length > 0) {
+                    await window.showNotionLookupModal(notionLookup);
+                    // resolve() 통과 — [평가 진행] 선택
+                  }
+                }
+              } catch (lookupErr) {
+                if (lookupErr === "NOTION_LOOKUP_CANCELLED" || lookupErr?.message === "NOTION_LOOKUP_CANCELLED") {
+                  // [평가 취소] — 평가 API·registry 저장 절대 호출 금지 (FBU-VAL-0010 규칙 4)
+                  processing.fail("평가가 취소되었습니다.");
+                  showSaveFeedback("learning-save-feedback", "평가가 취소되었습니다.", true);
+                  return;
+                }
+                // 네트워크/서버 오류: 수동 URL 복원 후 decision gate
+                console.warn("[Notion Auto-Lookup]", lookupErr);
+                processing.update("notionLookup", "done", `자동 조회 오류: ${lookupErr.message} — 수동 입력 확인 중`);
+                state.consultingReportUrl = manualConsultingUrl;
+                state.meetingReportUrl    = manualMeetingUrl;
+                state.internalReviewUrl   = manualInternalUrl;
+
+                // 수동 URL로도 보완되지 않은 유형 계산 → 있으면 사용자 decision 필수
+                const uncoveredAfterError = ["consultation", "meeting", "internal_review"].filter(rtype => {
+                  if (rtype === "consultation"    && manualConsultingUrl) return false;
+                  if (rtype === "meeting"         && manualMeetingUrl)    return false;
+                  if (rtype === "internal_review" && manualInternalUrl)  return false;
+                  return true;
+                });
+                state.missingNotionReports = uncoveredAfterError;
+
+                if (uncoveredAfterError.length > 0) {
+                  // FBU-VAL-0013 §3.1 권장 구조: missing_notion_reports 반드시 포함
+                  const errorLookup = {
+                    token_status: "lookup_error",
+                    missing_notion_reports: uncoveredAfterError,
+                  };
+                  ["consultation", "meeting", "internal_review"].forEach(r => {
+                    errorLookup[r] = {
+                      status: uncoveredAfterError.includes(r) ? "not_found" : "found_and_parsed",
+                      issues: uncoveredAfterError.includes(r) ? [`Notion 자동조회 오류: ${lookupErr.message}`] : [],
+                    };
+                  });
+                  await window.showNotionLookupModal(errorLookup);
+                  // resolve() 통과 — [평가 진행] 선택; reject → NOTION_LOOKUP_CANCELLED → outer catch
+                }
+              }
+            } else {
+              processing.update("notionLookup", "skipped", "기업명 미확인 — 자동 조회 건너뜀");
+            }
+            // ── END 노션 보고서 자동 조회 ────────────────────────────────────
+
+            // 수동 입력 URL 파싱 (자동 조회로 이미 파싱된 항목은 건너뜀)
+            if (state.consultingReportUrl && state.consultingReportUrl !== autoFoundUrls.consultation) {
               const consulting = await shared.parseConsultingReport(state.consultingReportUrl, state);
               state = consulting.state;
               processing.update("consultingLink", "done", "상담리포트 링크 읽기 완료");
+            }
+            if (state.meetingReportUrl && state.meetingReportUrl !== autoFoundUrls.meeting) {
+              const meeting = await shared.parseMeetingReport(state.meetingReportUrl, state);
+              state = meeting.state;
+              processing.update("meetingLink", "done", "미팅보고서 링크 읽기 완료");
             }
             if (consultingFile) {
               const supporting = await shared.parseSupportingDocument(consultingFile, "상담보고서", state);
@@ -732,10 +867,22 @@
               state.learningConsultingFileName = consultingFile.name;
               processing.update("consultingFile", "done", `${consultingFile.name} 읽기 완료`);
             }
-            if (state.internalReviewUrl) {
+            if (state.internalReviewUrl && state.internalReviewUrl !== autoFoundUrls.internal_review) {
               const internal = await shared.parseInternalReview(state.internalReviewUrl, state);
               state = internal.state;
               processing.update("internalLink", "done", "심사보고서 링크 읽기 완료");
+            }
+
+            // 최종 missingNotionReports reconciliation:
+            // 수동 URL 파싱 후 summary가 실제로 state에 주입된 유형은 배너 경고 대상에서 제외.
+            // (수동 입력이지만 권한·파싱 실패로 summary가 없으면 경고 유지)
+            if (Array.isArray(state.missingNotionReports)) {
+              state.missingNotionReports = state.missingNotionReports.filter(rtype => {
+                if (rtype === "consultation"    && state.consultingSummary) return false;
+                if (rtype === "meeting"         && state.meetingSummary)    return false;
+                if (rtype === "internal_review" && (state.internalReviewSummary || state.internalReviewValidationSummary)) return false;
+                return true;
+              });
             }
 
             processing.setStage("구조화 중", 2);
@@ -767,8 +914,14 @@
             });
             showSaveFeedback("learning-save-feedback", `학습 입력 반영 완료 · ${savedAt}`);
           } catch (error) {
-            processing.fail(error.message || "입력 저장에 실패했습니다.");
-            showSaveFeedback("learning-save-feedback", error.message || "입력 저장에 실패했습니다.", true);
+            if (error === "NOTION_LOOKUP_CANCELLED" || error?.message === "NOTION_LOOKUP_CANCELLED") {
+              // 자동 조회 오류 모달에서 [평가 취소] 선택 (inner catch → outer catch 전파)
+              processing.fail("평가가 취소되었습니다.");
+              showSaveFeedback("learning-save-feedback", "평가가 취소되었습니다.", true);
+            } else {
+              processing.fail(error.message || "입력 저장에 실패했습니다.");
+              showSaveFeedback("learning-save-feedback", error.message || "입력 저장에 실패했습니다.", true);
+            }
           }
         });
 
@@ -868,6 +1021,141 @@
         displayId: "dashboard-engine-version",
         onUpdate: (state) => renderHome(state),
       });
+    </script>
+    <!-- ── Notion 자동조회 결과 모달 ─────────────────────────────── -->
+    <div id="notion-lookup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:12px;max-width:480px;width:90%;padding:28px 28px 20px;box-shadow:0 8px 32px rgba(0,0,0,.22);font-family:'Noto Sans KR',sans-serif;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:24px;">⚠️</span>
+          <h3 style="margin:0;font-size:17px;color:#1f4e79;">보고서를 찾지 못했습니다</h3>
+        </div>
+        <p id="notion-modal-message" style="margin:0 0 14px;font-size:14px;color:#333;line-height:1.6;"></p>
+        <!-- 보고서별 상태 배지 -->
+        <div id="notion-modal-status-list" style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;"></div>
+        <!-- 안내 메시지 -->
+        <p style="margin:0 0 18px;font-size:12px;color:#666;line-height:1.5;">
+          취소 후 직접 링크를 입력하거나 수동 입력창을 열어 보완할 수 있습니다.
+        </p>
+        <!-- 버튼 -->
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button id="notion-modal-cancel" type="button"
+            style="padding:9px 20px;border-radius:7px;border:1.5px solid #c00000;background:#fff;color:#c00000;font-size:14px;font-weight:600;cursor:pointer;">
+            평가 취소
+          </button>
+          <button id="notion-modal-proceed" type="button"
+            style="padding:9px 20px;border-radius:7px;border:none;background:#2e75b6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">
+            평가 진행
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      /* Notion 자동조회 상태 배지 */
+      .notion-status-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 600;
+      }
+      .notion-status-badge.found    { background: #e2efda; color: #375623; }
+      .notion-status-badge.missing  { background: #fce4d6; color: #9c0006; }
+      .notion-status-badge.warn     { background: #fff2cc; color: #7f6000; }
+      .notion-status-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 10px; border-radius: 8px; background: #f7f9fb;
+        font-size: 13px; color: #333;
+      }
+      /* 수동 입력 토글 */
+      .manual-url-override { display: none; }
+      .manual-url-override.visible { display: block; }
+      .manual-override-toggle {
+        font-size: 11px; color: #2e75b6; cursor: pointer;
+        text-decoration: underline; margin-top: 4px; display: inline-block;
+      }
+    </style>
+
+    <script>
+    // ── Notion 자동조회 모달 헬퍼 ────────────────────────────────────────
+    (function () {
+      const REPORT_LABELS = {
+        consultation:    "상담보고서",
+        meeting:         "미팅보고서",
+        internal_review: "심사보고서",
+      };
+      const STATUS_META = {
+        found_and_parsed:   { icon: "✅", text: "자동 연결 완료",       cls: "found"  },
+        found_but_unreadable:{ icon: "⚠️", text: "발견됐으나 읽기 실패", cls: "warn"   },
+        not_found:          { icon: "❌", text: "Notion에 없음",        cls: "missing"},
+        token_missing:      { icon: "🔑", text: "토큰 미설정",          cls: "missing"},
+        db_permission_error:{ icon: "🔒", text: "DB 접근 권한 없음",    cls: "missing"},
+        ambiguous:          { icon: "🔍", text: "복수 후보 발견",        cls: "warn"   },
+      };
+
+      /**
+       * Notion 자동조회 결과를 바탕으로 모달을 표시한다.
+       * 사용자가 [취소]를 누르면 reject, [진행]이면 resolve.
+       * FBU-VAL-0010 §6 규칙 4·5: 팝업 decision 전 평가 API 절대 미호출.
+       */
+      window.showNotionLookupModal = function (lookupResult) {
+        return new Promise((resolve, reject) => {
+          const modal = document.getElementById("notion-lookup-modal");
+          const msgEl = document.getElementById("notion-modal-message");
+          const listEl = document.getElementById("notion-modal-status-list");
+          const btnCancel = document.getElementById("notion-modal-cancel");
+          const btnProceed = document.getElementById("notion-modal-proceed");
+
+          // 메시지 구성
+          const missingReports = lookupResult.missing_notion_reports || [];
+          const missingLabels = missingReports.map(r => REPORT_LABELS[r] || r);
+          if (lookupResult.token_status === "missing") {
+            msgEl.textContent = "Notion API 토큰이 설정되지 않아 자동 조회를 건너뛰었습니다. " +
+              "FlowScore 단독으로 평가를 진행하시겠습니까?";
+          } else {
+            msgEl.textContent =
+              `${missingLabels.join(", ")}를 찾지 못했습니다. ` +
+              "해당 자료 없이 평가를 진행하시겠습니까?";
+          }
+
+          // 상태 배지 목록
+          listEl.innerHTML = "";
+          ["consultation", "meeting", "internal_review"].forEach(rtype => {
+            const entry = (lookupResult[rtype] || {});
+            const status = entry.status || "not_found";
+            const meta = STATUS_META[status] || STATUS_META.not_found;
+            const row = document.createElement("div");
+            row.className = "notion-status-row";
+            row.innerHTML = `
+              <span>${REPORT_LABELS[rtype]}</span>
+              <span class="notion-status-badge ${meta.cls}">${meta.icon} ${meta.text}</span>
+            `;
+            // ambiguous: 후보 목록 표시
+            if (status === "ambiguous" && entry.candidates?.length) {
+              const note = document.createElement("div");
+              note.style.cssText = "font-size:11px;color:#7f6000;margin-left:8px;";
+              note.textContent = `후보: ${entry.candidates.map(c => c.title).join(", ")}`;
+              row.appendChild(note);
+            }
+            listEl.appendChild(row);
+          });
+
+          // 버튼 클린업 (이전 핸들러 제거)
+          const newCancel = btnCancel.cloneNode(true);
+          const newProceed = btnProceed.cloneNode(true);
+          btnCancel.replaceWith(newCancel);
+          btnProceed.replaceWith(newProceed);
+
+          newCancel.addEventListener("click", () => {
+            modal.style.display = "none";
+            reject(new Error("NOTION_LOOKUP_CANCELLED"));
+          });
+          newProceed.addEventListener("click", () => {
+            modal.style.display = "none";
+            resolve();
+          });
+
+          modal.style.display = "flex";
+        });
+      };
+    })();
     </script>
   </body>
 </html>

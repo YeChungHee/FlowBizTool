@@ -20,6 +20,12 @@ const BIZAIPRO_DEFAULT_STATE = {
   operatingProfitValue: "-563,240천원",
   netIncomeLabel: "2024년 당기순이익",
   netIncomeValue: "-423,427천원",
+  baseMonthlyLimitLabel: "기준 월간 적정 한도",
+  baseMonthlyLimitValue: "",
+  engineAdjustedLimitLabel: "엔진 보정 한도",
+  engineAdjustedLimitValue: "",
+  learningOperationalLimitLabel: "학습모드 운영 한도(주간 1회 기준)",
+  learningOperationalLimitValue: "",
   estimatedLimitLabel: "예상 한도",
   estimatedLimitValue: "5천만~1억원",
   estimatedMarginLabel: "예상 마진율",
@@ -43,6 +49,11 @@ const BIZAIPRO_DEFAULT_STATE = {
   consultingCrossChecks: [],
   consultingIssues: [],
   consultingValidationSummary: "",
+  meetingReportUrl: "",
+  meetingSummary: "",
+  meetingCrossChecks: [],
+  meetingIssues: [],
+  meetingValidationSummary: "",
   internalReviewSummary: "",
   internalReviewCrossChecks: [],
   internalReviewIssues: [],
@@ -445,10 +456,24 @@ function buildLearningModeContent(state) {
   const grade = state.financialFilterSignal || "확인 필요";
   const totalScore = state.reportTotalScore || "확인 필요";
   const pd = state.reportPdPct || "확인 필요";
-  const limit = state.reportMonthlyCreditLimit || state.estimatedLimitValue || "확인 필요";
-  const consultationLinked = state.consultingReportUrl
-    ? "상담리포트 노션 링크가 연결되어 있습니다."
-    : "상담리포트 노션 링크는 아직 연결되지 않았습니다.";
+  state.baseMonthlyLimitLabel = state.baseMonthlyLimitLabel || "기준 월간 적정 한도";
+  state.baseMonthlyLimitValue = state.baseMonthlyLimitValue || state.reportMonthlyCreditLimit || "확인 필요";
+  state.engineAdjustedLimitLabel = state.engineAdjustedLimitLabel || "엔진 보정 한도";
+  state.engineAdjustedLimitValue = state.engineAdjustedLimitValue || state.estimatedLimitValue || "확인 필요";
+  state.learningOperationalLimitLabel = state.learningOperationalLimitLabel || "학습모드 운영 한도(주간 1회 기준)";
+  state.learningOperationalLimitValue = state.learningOperationalLimitValue || "확인 필요";
+  state.estimatedLimitLabel = state.engineAdjustedLimitLabel;
+  state.estimatedLimitValue = state.engineAdjustedLimitValue;
+  const limit = state.engineAdjustedLimitValue || "확인 필요";
+  const consultationLinked =
+    state.consultingReportUrl || state.meetingReportUrl
+      ? [
+          state.consultingReportUrl ? "상담리포트 노션 링크가 연결되어 있습니다." : "",
+          state.meetingReportUrl ? "미팅보고서 노션 링크가 연결되어 있습니다." : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : "상담/미팅보고서 노션 링크는 아직 연결되지 않았습니다.";
   const internalLinked = state.internalReviewUrl
     ? "내부심사보고서 링크가 연결되어 있습니다."
     : "내부심사보고서 링크는 아직 없습니다.";
@@ -460,11 +485,13 @@ function buildLearningModeContent(state) {
     : "추가 정보 메모는 아직 없습니다.";
   const combinedCrossChecks = [
     ...(state.consultingCrossChecks || []),
+    ...(state.meetingCrossChecks || []),
     ...(state.internalReviewCrossChecks || []),
     ...(state.supportingDocumentCrossChecks || []),
   ];
   const combinedIssues = [
     ...(state.consultingIssues || []),
+    ...(state.meetingIssues || []),
     ...(state.internalReviewIssues || []),
     ...(state.supportingDocumentIssues || []),
     ...(state.additionalInfoIssues || []),
@@ -486,7 +513,9 @@ function buildLearningModeContent(state) {
   state.proposalHeroSubcopy =
     "현재 저장된 리포트, 상담리포트, 내부심사자료를 기준으로 기업평가 해석과 제안 포인트를 짧은 비즈니스 톤으로 정리합니다.";
   state.proposalContextLabel = "상담리포트 / 평가기준";
-  state.proposalContextValue = `${state.consultingReportUrl ? "노션 링크 연결" : "노션 링크 없음"} / ${reportDate}`;
+  state.proposalContextValue = `${
+    state.consultingReportUrl || state.meetingReportUrl ? "노션 링크 연결" : "노션 링크 없음"
+  } / ${reportDate}`;
   state.emailHeroPill = "학습모드 이메일";
   state.emailHeroTitle = "학습 평가 핵심 내용을 메일 문안으로 바꿉니다";
   state.emailHeroSubcopy =
@@ -506,15 +535,21 @@ function buildLearningModeContent(state) {
   state.recentRevenueValue = state.recentRevenueValue || "확인 필요";
   state.operatingProfitLabel = state.operatingProfitLabel || "리포트 영업이익";
   state.operatingProfitValue = state.operatingProfitValue || "확인 필요";
-  state.estimatedLimitLabel = state.estimatedLimitLabel || "예상 한도";
+  state.estimatedLimitLabel = state.estimatedLimitLabel || "엔진 보정 한도";
   state.estimatedMarginLabel = state.estimatedMarginLabel || "예상 마진율";
   state.cashflowSignal = state.reportPdPct ? `PD ${state.reportPdPct}` : "추가 확인 필요";
   state.heroNextAction =
-    state.consultingValidationSummary || state.internalReviewValidationSummary || state.supportingDocumentSummary
+    state.consultingValidationSummary ||
+    state.meetingValidationSummary ||
+    state.internalReviewValidationSummary ||
+    state.supportingDocumentSummary
       ? "리포트·상담·심사 교차검증 후 제안 정리"
       : "리포트 검토 후 상담 내용 반영";
   state.nextAction =
-    state.consultingValidationSummary || state.internalReviewValidationSummary || state.supportingDocumentSummary
+    state.consultingValidationSummary ||
+    state.meetingValidationSummary ||
+    state.internalReviewValidationSummary ||
+    state.supportingDocumentSummary
       ? "교차검증 완료 후<br />제안서 생성"
       : "상담 확인 후<br />제안서 생성";
   state.recommendedTenorText = state.recommendedTenorText || "결제기간 추가 확인";
@@ -523,6 +558,7 @@ function buildLearningModeContent(state) {
   state.exhibitionSummary =
     [
       state.consultingValidationSummary,
+      state.meetingValidationSummary,
       state.internalReviewValidationSummary,
       state.supportingDocumentSummary,
       state.additionalInfoSummary,
@@ -530,9 +566,10 @@ function buildLearningModeContent(state) {
       .filter(Boolean)
       .join(" ")
       .trim() || `${consultationLinked} ${internalLinked} ${supportingLinked} ${extraInfoLinked}`;
-  state.financialSummary = `재무 필터 신호는 ${grade}이며, 종합점수는 ${totalScore}, 월간 적정 신용한도는 ${limit}, 부도확률(PD)은 ${pd} 기준으로 해석합니다.`;
+  state.financialSummary = `재무 필터 신호는 ${grade}이며, 종합점수는 ${totalScore}, 엔진 보정 한도는 ${limit}, 부도확률(PD)은 ${pd} 기준으로 해석합니다.`;
   state.whyNow =
     state.consultingSummary ||
+    state.meetingSummary ||
     state.internalReviewSummary ||
     state.supportingDocumentSummary ||
     state.additionalInfoSummary ||
@@ -550,12 +587,12 @@ function buildLearningModeContent(state) {
       ];
 
   state.proposal.executive = `${company}는 업로드한 리포트와 상담자료를 기준으로 현재 제안 상태가 '${state.currentProposalState}'로 해석됩니다.`;
-  state.proposal.company = `${company}의 재무 필터 신호는 ${grade}, 종합점수는 ${totalScore}, 월간 적정 신용한도는 ${limit} 수준으로 읽힙니다.`;
+  state.proposal.company = `${company}의 재무 필터 신호는 ${grade}, 종합점수는 ${totalScore}, 엔진 보정 한도는 ${limit} 수준으로 해석합니다.`;
   state.proposal.exhibition = `${consultationLinked} ${internalLinked} ${supportingLinked} ${extraInfoLinked}`;
   state.proposal.opportunity =
     "학습모드에서는 업로드한 자료를 바탕으로 실제 거래 구조와 자금 수요를 다시 정리하고, 제안 가능한 범위를 보수적으로 설명하는 접근이 적절합니다.";
   state.proposal.structure =
-    `현재 기준 예상 한도는 ${state.estimatedLimitValue}, 예상 마진율은 ${state.estimatedMarginValue} 수준이며, 결제유예기간은 ${state.recommendedTenorText}로 검토합니다.`;
+    `현재 기준 엔진 보정 한도는 ${state.estimatedLimitValue}, 예상 마진율은 ${state.estimatedMarginValue} 수준이며, 결제유예기간은 ${state.recommendedTenorText}로 검토합니다.`;
   state.proposal.risks = combinedIssues.length
     ? combinedIssues.join(" ")
     : `우선 확인할 항목은 실제 발주 여부, 회수 구조, 상담자료와 리포트 사이의 불일치 여부입니다.`;
@@ -658,6 +695,11 @@ function resetForLearningMode(state) {
   state.consultingCrossChecks = [];
   state.consultingIssues = [];
   state.consultingValidationSummary = "";
+  state.meetingReportUrl = "";
+  state.meetingSummary = "";
+  state.meetingCrossChecks = [];
+  state.meetingIssues = [];
+  state.meetingValidationSummary = "";
   state.internalReviewSummary = "";
   state.internalReviewCrossChecks = [];
   state.internalReviewIssues = [];
@@ -680,6 +722,7 @@ function resetForExhibitionMode(state) {
     state.businessNumber = "확인 필요";
   }
   state.consultingReportUrl = "";
+  state.meetingReportUrl = "";
   state.internalReviewUrl = "";
   state.learningExtraInfo = "";
   return state;
@@ -928,6 +971,33 @@ async function parseConsultingReport(url, currentState = {}) {
   return {
     state: next,
     parsed: payload.parsed_consulting_report || {},
+  };
+}
+
+async function parseMeetingReport(url, currentState = {}) {
+  const formData = new FormData();
+  formData.append("meeting_url", url || "");
+  formData.append("company_name", currentState.companyName || "");
+  formData.append("business_number", currentState.businessNumber || "");
+  formData.append("representative_name", currentState.representativeName || "");
+
+  const response = await fetch(`${getApiBaseUrl()}/api/meeting/parse`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "미팅보고서 링크를 읽지 못했습니다.");
+  }
+
+  const payload = await response.json();
+  const base = getMergeBaseState(currentState);
+  deepMerge(base, payload.state_patch || {});
+  const next = saveState(base);
+  return {
+    state: next,
+    parsed: payload.parsed_meeting_report || {},
   };
 }
 
@@ -1359,6 +1429,7 @@ window.BizAiProShared = {
   extractExhibitionContext,
   parseFlowscoreReport,
   parseConsultingReport,
+  parseMeetingReport,
   parseInternalReview,
   parseSupportingDocument,
   parseAdditionalInfoText,

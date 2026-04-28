@@ -13,7 +13,10 @@ from proposal_generator import generate_bizaipro_proposal
 
 
 BASE_DIR = Path(__file__).resolve().parent
-FRAMEWORK_PATH = BASE_DIR / "data" / "integrated_credit_rating_framework.json"
+ACTIVE_FRAMEWORK_PATH = BASE_DIR / "data" / "active_framework.json"
+_BASELINE_FRAMEWORK_PATH = BASE_DIR / "data" / "integrated_credit_rating_framework.json"
+# import 시점 고정값 — 하위 호환용으로만 유지. 평가 호출은 load_active_framework() 사용 권장
+FRAMEWORK_PATH = ACTIVE_FRAMEWORK_PATH if ACTIVE_FRAMEWORK_PATH.exists() else _BASELINE_FRAMEWORK_PATH
 
 
 @dataclass
@@ -33,6 +36,32 @@ class SurvivalResult:
 def load_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as fp:
         return json.load(fp)
+
+
+def load_active_framework() -> dict[str, Any]:
+    """매 호출 시 active_framework.json 존재 여부를 다시 확인해 로드.
+
+    서버 실행 중 promote로 active_framework.json이 생성·갱신되어도
+    다음 평가 호출부터 즉시 반영된다 (FBU-VAL-0007 Finding 2 수정).
+    """
+    if ACTIVE_FRAMEWORK_PATH.exists():
+        return load_json(ACTIVE_FRAMEWORK_PATH)
+    return load_json(_BASELINE_FRAMEWORK_PATH)
+
+
+def get_active_framework_meta() -> dict[str, str]:
+    """현재 사용 중인 framework의 경로와 소스 유형을 반환."""
+    if ACTIVE_FRAMEWORK_PATH.exists():
+        return {
+            "framework_path": str(ACTIVE_FRAMEWORK_PATH),
+            "source": "active",
+            "filename": ACTIVE_FRAMEWORK_PATH.name,
+        }
+    return {
+        "framework_path": str(_BASELINE_FRAMEWORK_PATH),
+        "source": "baseline",
+        "filename": _BASELINE_FRAMEWORK_PATH.name,
+    }
 
 
 def bounded_score(value: float) -> float:
