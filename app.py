@@ -4407,4 +4407,266 @@ if os.getenv("FLOWBIZ_ENV") == "test":
         return {"deleted": report_id}
 
 
+# ============================================================
+# Phase 4 — 월간 평가엔진고도화보고서 API (codex 종합검증 F7)
+# ============================================================
+class UpgradeReport(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    report_id: str = Field(default_factory=_new_id)
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    period_year: int
+    period_month: int
+    status: Literal["pending", "approved", "on_hold", "rejected", "promoted"] = "pending"
+    candidate_changes: list[dict] = []
+    impact_summary: dict = {}
+    admin_decision_history: list[dict] = []
+
+
+class UpgradeDecisionRequest(BaseModel):
+    decision: Literal["approved", "rejected", "on_hold"]
+    decision_reason: str = ""
+    admin_id: str = "system"
+
+
+class PromoteFpeRequest(BaseModel):
+    report_id: str
+    target_version: Optional[str] = None
+
+
+def get_upgrade_dir() -> Path:
+    if os.getenv("FLOWBIZ_ENV") == "test":
+        return Path(os.getenv("FLOWBIZ_TEST_UPGRADE_DIR", "data/test_upgrade_reports"))
+    return Path("data/upgrade_reports")
+
+
+def save_upgrade_report(report: UpgradeReport) -> Path:
+    d = get_upgrade_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{report.report_id}.json"
+    path.write_text(json.dumps(report.model_dump(), default=str, ensure_ascii=False))
+    return path
+
+
+def load_upgrade_report(report_id: str) -> UpgradeReport:
+    d = get_upgrade_dir()
+    path = d / f"{report_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"upgrade report not found: {report_id}")
+    return UpgradeReport(**json.loads(path.read_text()))
+
+
+@app.post("/api/engine/monthly-upgrade-report", response_model=UpgradeReport)
+async def create_monthly_upgrade_report():
+    """매월 30일 13:00 KST 자동 호출 — 월간 평가엔진고도화보고서 생성"""
+    now = datetime.utcnow()
+    report = UpgradeReport(
+        period_year=now.year,
+        period_month=now.month,
+        candidate_changes=[
+            {"description": "FPE 가중치 후보 (자동 수집)", "source": "monthly_aggregation"},
+        ],
+        impact_summary={
+            "evaluated_count": 0,
+            "credit_limit_delta": 0,
+            "margin_rate_delta_pp": 0.0,
+        },
+    )
+    save_upgrade_report(report)
+    return report
+
+
+@app.get("/api/engine/upgrade-reports")
+async def list_upgrade_reports(status: Optional[str] = None, limit: int = 20):
+    d = get_upgrade_dir()
+    if not d.exists():
+        return {"reports": [], "total": 0}
+    files = sorted(d.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit * 2]
+    reports = []
+    for f in files:
+        try:
+            raw = json.loads(f.read_text())
+            if status and raw.get("status") != status:
+                continue
+            reports.append(raw)
+            if len(reports) >= limit:
+                break
+        except Exception:
+            continue
+    return {"reports": reports, "total": len(reports)}
+
+
+@app.get("/api/engine/upgrade-reports/{report_id}", response_model=UpgradeReport)
+async def get_upgrade_report(report_id: str):
+    return load_upgrade_report(report_id)
+
+
+@app.post("/api/engine/upgrade-reports/{report_id}/decision", response_model=UpgradeReport)
+async def submit_upgrade_decision(report_id: str, req: UpgradeDecisionRequest):
+    """관리자 승인/반려/보류 — 5 상태 (v6 [codex] F4 P2)"""
+    report = load_upgrade_report(report_id)
+    if req.decision == "approved":
+        report.status = "approved"
+    elif req.decision == "rejected":
+        report.status = "rejected"
+    elif req.decision == "on_hold":
+        report.status = "on_hold"
+    report.admin_decision_history.append({
+        "decision": req.decision,
+        "reason": req.decision_reason,
+        "admin_id": req.admin_id,
+        "at": datetime.utcnow().isoformat(),
+    })
+    save_upgrade_report(report)
+    return report
+
+
+@app.post("/api/engine/promote-fpe")
+async def promote_fpe(req: PromoteFpeRequest):
+    """관리자 승인된 보고서를 FPE active 버전으로 promote"""
+    report = load_upgrade_report(req.report_id)
+    if report.status != "approved":
+        raise HTTPException(
+            status_code=400,
+            detail=f"upgrade report status must be 'approved' (got: {report.status})",
+        )
+    report.status = "promoted"
+    report.admin_decision_history.append({
+        "decision": "promoted",
+        "target_version": req.target_version or "auto",
+        "at": datetime.utcnow().isoformat(),
+    })
+    save_upgrade_report(report)
+    return {"promoted": True, "report_id": report.report_id, "status": "promoted"}
+
+
+# ============================================================
+# 이메일 생성 API (codex 종합검증 F6)
+# ============================================================
+class EmailSnapshot(BaseModel):
+    email_id: str = Field(default_factory=_new_id)
+    report_id: Optional[str] = None
+    proposal_id: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    company_name: str
+    recipient: str
+    subject: str
+    body: str
+    template_variant: str = "standard"
+
+
+class EmailGenerateRequest(BaseModel):
+    report_id: Optional[str] = None
+    proposal_id: Optional[str] = None
+    template_variant: Literal["standard", "exhibition_cold"] = "standard"
+    recipient: str
+    cc: list[str] = []
+
+
+@app.post("/api/email/generate", response_model=EmailSnapshot)
+async def generate_email(req: EmailGenerateRequest):
+    """snapshot 기반 이메일 생성 — FPE 강제 (§3.3 #1-#2)"""
+    if not (req.report_id or req.proposal_id):
+        raise HTTPException(status_code=400, detail="report_id 또는 proposal_id 필수")
+    if req.report_id:
+        snapshot = load_evaluation_snapshot_validated(req.report_id)
+    else:
+        raise HTTPException(status_code=400, detail="proposal_id 기반은 후속 구현")
+    if not snapshot.proposal_allowed:
+        raise HTTPException(status_code=403, detail=f"FPE blocked: {snapshot.blocked_reason}")
+    if req.template_variant == "exhibition_cold":
+        subject = f"[FlowPay] {snapshot.company_name} — 거래 한도 안내 (전시회 콜드)"
+    else:
+        subject = f"[FlowPay] {snapshot.company_name} — 거래 한도 안내"
+    body = f"""안녕하세요, {snapshot.company_name} 담당자님.
+
+FlowPay 평가 결과를 안내드립니다.
+
+거래 한도: {snapshot.fpe_credit_limit:,}원
+마진율: {snapshot.fpe_margin_rate * 100:.1f}%
+결제유예: {snapshot.fpe_payment_grace_days}일
+
+(FPE 평가엔진 기준 — APE 학습엔진 결과는 비교/고도화에만 사용됨)
+"""
+    return EmailSnapshot(
+        report_id=req.report_id,
+        company_name=snapshot.company_name,
+        recipient=req.recipient,
+        subject=subject,
+        body=body,
+        template_variant=req.template_variant,
+    )
+
+
+# ============================================================
+# 전시회 lead → FPE 평가 연결 API (codex 종합검증 F8)
+# ============================================================
+class ExhibitionEvaluateRequest(BaseModel):
+    company_name: str
+    exhibition_name: str
+    exhibition_year: int
+    industry: str
+    homepage: Optional[str] = None
+    contact_name: Optional[str] = None
+    state: Optional[dict] = None
+
+
+def get_exhibition_lead_dir() -> Path:
+    if os.getenv("FLOWBIZ_ENV") == "test":
+        return Path("data/test_exhibition_leads")
+    return Path("data/exhibition_leads")
+
+
+def save_exhibition_lead(lead: ExhibitionLeadSnapshot) -> Path:
+    d = get_exhibition_lead_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{lead.lead_id}.json"
+    path.write_text(json.dumps(lead.model_dump(), default=str, ensure_ascii=False))
+    return path
+
+
+@app.post("/api/exhibition/evaluate")
+async def evaluate_exhibition_company(req: ExhibitionEvaluateRequest):
+    """전시회 참가기업 평가 — codex 종합검증 §2 F8 정정"""
+    has_full_state = req.state is not None and (
+        req.state.get("companyReport")
+        or req.state.get("flowScore")
+        or req.state.get("financial_filter_signal") == "pass"
+    )
+    if has_full_state:
+        return await create_evaluation_report(EvaluationReportRequest(
+            state={
+                **req.state,
+                "company_name": req.company_name,
+                "industry_profile": {"label": req.industry},
+                "exhibition_name": req.exhibition_name,
+                "exhibition_year": req.exhibition_year,
+            }
+        ))
+    lead = ExhibitionLeadSnapshot(
+        company_name=req.company_name,
+        exhibition_name=req.exhibition_name,
+        exhibition_year=req.exhibition_year,
+        industry=req.industry,
+        homepage=req.homepage,
+        contact_name=req.contact_name,
+    )
+    save_exhibition_lead(lead)
+    return lead
+
+
+@app.get("/api/exhibition/leads")
+async def list_exhibition_leads(limit: int = 20):
+    d = get_exhibition_lead_dir()
+    if not d.exists():
+        return {"leads": [], "total": 0}
+    files = sorted(d.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    leads = []
+    for f in files:
+        try:
+            leads.append(json.loads(f.read_text()))
+        except Exception:
+            continue
+    return {"leads": leads, "total": len(leads)}
+
+
 app.mount("/web", StaticFiles(directory=WEB_DIR, html=True), name="web")
