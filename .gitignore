@@ -7,3 +7,9 @@ data/dart_corp_codes_cache.json
 outputs/
 tmp/
 .env
+
+# v6 [codex] F3 P2 — E2E 테스트 산출물 (FBU-PLAN-UI-V2-STANDALONE-IMPL-v6)
+data/test_evaluation_reports/
+test-results/
+playwright-report/
+node_modules/
