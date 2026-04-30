@@ -1,0 +1,630 @@
+{
+  "version": "0.1.0",
+  "description": "Integrated credit rating framework derived from public methodologies of major Korean rating agencies.",
+  "sources": [
+    {
+      "agency": "KIS",
+      "url": "https://kisrating.com/business/creditrating.do",
+      "note": "Public overview of credit rating philosophy and 5 risk categories."
+    },
+    {
+      "agency": "KIS",
+      "url": "https://www.kisrating.com/business/enterprise.do",
+      "note": "Issuer Rating analysis factors and public timing."
+    },
+    {
+      "agency": "KIS",
+      "url": "https://kisrating.com/business/companystock.do",
+      "note": "Corporate bond evaluation factors."
+    },
+    {
+      "agency": "NICE",
+      "url": "https://www.nicerating.com/publish/creditEvalElement.do",
+      "note": "Public evaluation elements for corporate ratings."
+    },
+    {
+      "agency": "NICE",
+      "url": "https://www.nicerating.com/publish/evalProcess.do",
+      "note": "Public evaluation process and committee flow."
+    },
+    {
+      "agency": "KR",
+      "url": "https://www.korearatings.com/cms/frCmnCon/index.do?MENU_ID=250",
+      "note": "Public core evaluation factors."
+    },
+    {
+      "agency": "KR",
+      "url": "https://www.korearatings.com/cms/frCmnCon/index.do?MENU_ID=270",
+      "note": "Public evaluation process."
+    }
+  ],
+  "rating_scale": [
+    {
+      "min_score": 92,
+      "rating": "AAA"
+    },
+    {
+      "min_score": 88,
+      "rating": "AA+"
+    },
+    {
+      "min_score": 84,
+      "rating": "AA"
+    },
+    {
+      "min_score": 80,
+      "rating": "AA-"
+    },
+    {
+      "min_score": 76,
+      "rating": "A+"
+    },
+    {
+      "min_score": 72,
+      "rating": "A"
+    },
+    {
+      "min_score": 68,
+      "rating": "A-"
+    },
+    {
+      "min_score": 64,
+      "rating": "BBB+"
+    },
+    {
+      "min_score": 60,
+      "rating": "BBB"
+    },
+    {
+      "min_score": 56,
+      "rating": "BBB-"
+    },
+    {
+      "min_score": 52,
+      "rating": "BB+"
+    },
+    {
+      "min_score": 48,
+      "rating": "BB"
+    },
+    {
+      "min_score": 44,
+      "rating": "BB-"
+    },
+    {
+      "min_score": 40,
+      "rating": "B+"
+    },
+    {
+      "min_score": 36,
+      "rating": "B"
+    },
+    {
+      "min_score": 32,
+      "rating": "B-"
+    },
+    {
+      "min_score": 0,
+      "rating": "CCC or below"
+    }
+  ],
+  "integrated_weights": {
+    "management_risk": 0.15,
+    "group_risk": 0.1,
+    "industry_risk": 0.2,
+    "business_risk": 0.25,
+    "financial_risk": 0.3
+  },
+  "agency_weights": {
+    "KIS": {
+      "management_risk": 0.15,
+      "group_risk": 0.15,
+      "industry_risk": 0.2,
+      "business_risk": 0.2,
+      "financial_risk": 0.3
+    },
+    "NICE": {
+      "management_risk": 0.1,
+      "group_risk": 0.05,
+      "industry_risk": 0.2,
+      "business_risk": 0.3,
+      "financial_risk": 0.35
+    },
+    "KR": {
+      "management_risk": 0.1,
+      "group_risk": 0.1,
+      "industry_risk": 0.2,
+      "business_risk": 0.2,
+      "financial_risk": 0.4
+    }
+  },
+  "critical_factors": {
+    "liquidity": {
+      "floor_if_below": 35,
+      "max_rating": "BB+"
+    },
+    "cash_flow": {
+      "floor_if_below": 35,
+      "max_rating": "BB+"
+    },
+    "leverage": {
+      "floor_if_below": 30,
+      "max_rating": "BB"
+    },
+    "accounting_quality": {
+      "floor_if_below": 35,
+      "max_rating": "BBB-"
+    },
+    "governance": {
+      "floor_if_below": 30,
+      "max_rating": "BBB-"
+    }
+  },
+  "api_enrichment": {
+    "blend": {
+      "manual_weight": 0.5,
+      "api_weight": 0.5
+    },
+    "default_ecos_industry_code": "C0000",
+    "dart_financial_lookback_years": 3
+  },
+  "flowpay_3m_survival": {
+    "description": "Short-term 3 month receivable survival model for FlowPay-style purchase BNPL and receivable-linked settlement.",
+    "survival_scale": [
+      {
+        "min_score": 88,
+        "judgment": "Very Strong",
+        "survival_probability": "97%+"
+      },
+      {
+        "min_score": 80,
+        "judgment": "Strong",
+        "survival_probability": "94%~97%"
+      },
+      {
+        "min_score": 72,
+        "judgment": "Stable",
+        "survival_probability": "90%~94%"
+      },
+      {
+        "min_score": 64,
+        "judgment": "Monitor",
+        "survival_probability": "84%~90%"
+      },
+      {
+        "min_score": 56,
+        "judgment": "Vulnerable",
+        "survival_probability": "75%~84%"
+      },
+      {
+        "min_score": 0,
+        "judgment": "High Risk",
+        "survival_probability": "<75%"
+      }
+    ],
+    "weights": {
+      "data_reliability": 0.22,
+      "seller_operating_strength": 0.18,
+      "buyer_receivable_strength": 0.25,
+      "transaction_structure": 0.2,
+      "tenor_liquidity_match": 0.15
+    },
+    "critical_factors": {
+      "accounting_reliability": {
+        "floor_if_below": 35,
+        "max_judgment": "Vulnerable"
+      },
+      "bank_statement_verifiability": {
+        "floor_if_below": 35,
+        "max_judgment": "Vulnerable"
+      },
+      "buyer_payment_history": {
+        "floor_if_below": 35,
+        "max_judgment": "High Risk"
+      },
+      "electronic_contract_enforceability": {
+        "floor_if_below": 35,
+        "max_judgment": "High Risk"
+      },
+      "invoice_delivery_proof": {
+        "floor_if_below": 35,
+        "max_judgment": "High Risk"
+      }
+    },
+    "categories": {
+      "data_reliability": {
+        "label": "Data Reliability",
+        "description": "Confidence in SME filings, audit quality, document consistency, and bank traceability.",
+        "subfactors": {
+          "accounting_reliability": 0.25,
+          "tax_filing_consistency": 0.2,
+          "audit_quality": 0.2,
+          "bank_statement_verifiability": 0.2,
+          "document_integrity": 0.15
+        }
+      },
+      "seller_operating_strength": {
+        "label": "Seller Operating Strength",
+        "description": "Operating continuity of the SME seller during the 3 month tenor.",
+        "subfactors": {
+          "order_visibility": 0.2,
+          "gross_margin_buffer": 0.2,
+          "inventory_turnover_visibility": 0.15,
+          "customer_diversification": 0.15,
+          "working_capital_discipline": 0.15,
+          "management_responsiveness": 0.15
+        }
+      },
+      "buyer_receivable_strength": {
+        "label": "Buyer Receivable Strength",
+        "description": "Collection certainty from the end buyer that ultimately funds the 3 month repayment.",
+        "subfactors": {
+          "buyer_credit_quality": 0.25,
+          "buyer_payment_history": 0.25,
+          "buyer_concentration_diversity": 0.1,
+          "invoice_acceptance_clarity": 0.15,
+          "setoff_dispute_risk": 0.1,
+          "buyer_industry_stability": 0.15
+        }
+      },
+      "transaction_structure": {
+        "label": "Transaction Structure",
+        "description": "Legal and operational robustness of the FlowPay transaction itself.",
+        "subfactors": {
+          "electronic_contract_enforceability": 0.2,
+          "invoice_delivery_proof": 0.2,
+          "goods_essentiality": 0.15,
+          "repayment_source_clarity": 0.15,
+          "recourse_strength": 0.15,
+          "fraud_control_strength": 0.15
+        }
+      },
+      "tenor_liquidity_match": {
+        "label": "Tenor and Liquidity Match",
+        "description": "How well the 3 month tenor matches the operating cash conversion cycle.",
+        "subfactors": {
+          "cash_conversion_cycle_fit": 0.3,
+          "tenor_adequacy": 0.2,
+          "seasonality_stability": 0.15,
+          "emergency_liquidity_backstop": 0.2,
+          "refinancing_dependence": 0.15
+        }
+      }
+    }
+  },
+  "flowpay_underwriting": {
+    "description": "FlowPay underwriting model for applicant company, buyer company, tenor survival, margin pricing, and single-delivery limit sizing.",
+    "knockout_rules": {
+      "minimum_business_years": 1.0,
+      "allow_fast_track_if_supported": true,
+      "excluded_credit_grades": [
+        "CCC-",
+        "CC",
+        "C",
+        "D"
+      ],
+      "exclude_complete_capital_impairment": true,
+      "exclude_tax_arrears": true,
+      "exclude_recent_legal_action_years": 3,
+      "excluded_industries": [
+        "gambling",
+        "adult_entertainment",
+        "multi_level_marketing",
+        "speculative_virtual_assets",
+        "real_estate_pf"
+      ]
+    },
+    "industry_thresholds": {
+      "manufacturing": {
+        "recommended_operating_margin": 3.0,
+        "recommended_ebitda_interest_coverage": 1.2
+      },
+      "service_it": {
+        "recommended_operating_margin": 5.0,
+        "recommended_ebitda_interest_coverage": 1.5
+      },
+      "default": {
+        "recommended_operating_margin": 4.0,
+        "recommended_ebitda_interest_coverage": 1.3
+      }
+    },
+    "overall_weights": {
+      "applicant": 0.4,
+      "buyer": 0.35,
+      "transaction": 0.25
+    },
+    "party_grade_scale": [
+      {
+        "min_score": 85,
+        "grade": "A"
+      },
+      {
+        "min_score": 75,
+        "grade": "B+"
+      },
+      {
+        "min_score": 65,
+        "grade": "B"
+      },
+      {
+        "min_score": 55,
+        "grade": "C+"
+      },
+      {
+        "min_score": 45,
+        "grade": "C"
+      },
+      {
+        "min_score": 0,
+        "grade": "D"
+      }
+    ],
+    "applicant": {
+      "weights": {
+        "financial": 0.28,
+        "business": 0.2,
+        "management": 0.22,
+        "compliance": 0.2,
+        "external": 0.1
+      },
+      "categories": {
+        "financial": {
+          "subfactors": {
+            "annual_sales_scale": 0.15,
+            "revenue_stability": 0.15,
+            "operating_profitability": 0.2,
+            "net_profitability": 0.15,
+            "liquidity_cashflow": 0.2,
+            "leverage": 0.15
+          }
+        },
+        "business": {
+          "subfactors": {
+            "onsite_business_alignment": 0.2,
+            "registry_business_alignment": 0.15,
+            "industry_condition": 0.2,
+            "business_model_resilience": 0.15,
+            "external_funding_validation": 0.15,
+            "customer_diversification": 0.15
+          }
+        },
+        "management": {
+          "subfactors": {
+            "representative_execution": 0.25,
+            "actual_manager_match": 0.2,
+            "shareholder_structure": 0.15,
+            "representative_history": 0.15,
+            "employee_history": 0.1,
+            "governance_control": 0.15
+          }
+        },
+        "compliance": {
+          "subfactors": {
+            "national_tax_compliance": 0.18,
+            "local_tax_compliance": 0.14,
+            "four_insurance_compliance": 0.14,
+            "trade_delinquency": 0.18,
+            "loan_delinquency": 0.18,
+            "legal_dispute_status": 0.18
+          }
+        },
+        "external": {
+          "subfactors": {
+            "corporate_credit_grade_signal": 0.3,
+            "dart_signal": 0.2,
+            "ecos_signal": 0.15,
+            "cretop_signal": 0.2,
+            "public_reputation": 0.1,
+            "employee_reputation": 0.05
+          }
+        }
+      }
+    },
+    "buyer": {
+      "weights": {
+        "financial": 0.32,
+        "business": 0.18,
+        "payment": 0.35,
+        "external": 0.15
+      },
+      "categories": {
+        "financial": {
+          "subfactors": {
+            "buyer_revenue_scale": 0.15,
+            "buyer_profitability": 0.2,
+            "buyer_liquidity": 0.25,
+            "buyer_leverage": 0.2,
+            "buyer_cashflow": 0.2
+          }
+        },
+        "business": {
+          "subfactors": {
+            "buyer_industry_condition": 0.25,
+            "buyer_business_stability": 0.25,
+            "buyer_market_position": 0.2,
+            "buyer_reputation": 0.15,
+            "buyer_registry_alignment": 0.15
+          }
+        },
+        "payment": {
+          "subfactors": {
+            "payment_history": 0.3,
+            "settlement_stability": 0.2,
+            "invoice_acceptance_clarity": 0.15,
+            "dispute_setoff_risk": 0.15,
+            "concentration_risk": 0.1,
+            "delay_pattern": 0.1
+          }
+        },
+        "external": {
+          "subfactors": {
+            "buyer_credit_grade_signal": 0.35,
+            "buyer_dart_signal": 0.2,
+            "buyer_ecos_signal": 0.1,
+            "buyer_cretop_signal": 0.2,
+            "buyer_funding_signal": 0.15
+          }
+        }
+      }
+    },
+    "transaction": {
+      "weights": {
+        "structure": 0.45,
+        "tenor": 0.35,
+        "macro": 0.2
+      },
+      "categories": {
+        "structure": {
+          "subfactors": {
+            "order_authenticity": 0.18,
+            "contract_enforceability": 0.16,
+            "delivery_verification": 0.16,
+            "invoice_proof": 0.16,
+            "recourse_strength": 0.16,
+            "fraud_control_strength": 0.18
+          }
+        },
+        "tenor": {
+          "subfactors": {
+            "cash_conversion_cycle_fit": 0.25,
+            "requested_tenor_fit": 0.2,
+            "seller_survival_buffer": 0.2,
+            "buyer_survival_buffer": 0.2,
+            "emergency_liquidity_backstop": 0.15
+          }
+        },
+        "macro": {
+          "subfactors": {
+            "industry_outlook": 0.3,
+            "macro_sensitivity": 0.25,
+            "commodity_volatility": 0.2,
+            "fx_or_policy_risk": 0.25
+          }
+        }
+      }
+    },
+    "default_probability": {
+      "hazard": {
+        "base": 0.008,
+        "score_power": 1.75,
+        "score_multiplier": 0.2,
+        "weakness_multiplier": 0.07
+      },
+      "month_growth_factors": {
+        "1": 1.0,
+        "2": 1.08,
+        "3": 1.18,
+        "4": 1.3,
+        "5": 1.44
+      }
+    },
+    "margin": {
+      "supported_deferral_months": [
+        1,
+        2,
+        3
+      ],
+      "base_rate_by_month": {
+        "1": 3.0,
+        "2": 6.0,
+        "3": 9.0
+      },
+      "max_rate_by_month": {
+        "1": 6.0,
+        "2": 9.0,
+        "3": 12.0
+      },
+      "annual_legal_cap_rate": 20.0
+    },
+    "limit": {
+      "base_monthly_sales_ratio": 0.7,
+      "monthly_sales_cap_ratio": 1.0,
+      "age_factor": {
+        "lte_2": 0.55,
+        "lte_3": 0.75,
+        "lt_7": 0.9,
+        "gte_7": 1.0
+      },
+      "profit_factor": {
+        "both_positive": 1.0,
+        "one_negative": 0.85,
+        "both_negative": 0.65
+      }
+    },
+    "early_warning_system": {
+      "rep_credit_drop_notches": 2,
+      "yoy_sales_drop_pct": 30.0,
+      "short_term_debt_growth_pct": 30.0,
+      "actions": [
+        "suspend_new_underwriting",
+        "start_field_review",
+        "tighten_limit"
+      ]
+    }
+  },
+  "categories": {
+    "management_risk": {
+      "label": "Management Risk",
+      "description": "Governance, transparency, management quality, strategy consistency, and internal controls.",
+      "subfactors": {
+        "governance": 0.25,
+        "transparency": 0.2,
+        "strategy_consistency": 0.2,
+        "management_capability": 0.2,
+        "internal_control": 0.15
+      }
+    },
+    "group_risk": {
+      "label": "Group Risk",
+      "description": "Affiliate support, dependency, funding linkage, guarantee support, and standalone credit profile.",
+      "subfactors": {
+        "affiliate_support": 0.25,
+        "dependency": 0.2,
+        "funding_linkage": 0.15,
+        "guarantee_support_capacity": 0.2,
+        "standalone_strength": 0.2
+      }
+    },
+    "industry_risk": {
+      "label": "Industry Risk",
+      "description": "Cyclicality, regulation, competitive intensity, entry barriers, supply-demand balance, and industry outlook.",
+      "subfactors": {
+        "cyclicality": 0.2,
+        "regulation_environment": 0.1,
+        "competitive_intensity": 0.2,
+        "barriers_to_entry": 0.15,
+        "supply_demand_balance": 0.15,
+        "industry_outlook": 0.2
+      }
+    },
+    "business_risk": {
+      "label": "Business Risk",
+      "description": "Market position, diversification, operating efficiency, revenue stability, strategic execution, and bargaining power.",
+      "subfactors": {
+        "market_position": 0.25,
+        "diversification": 0.15,
+        "operating_efficiency": 0.2,
+        "revenue_stability": 0.15,
+        "strategic_execution": 0.15,
+        "bargaining_power": 0.1
+      }
+    },
+    "financial_risk": {
+      "label": "Financial Risk",
+      "description": "Profitability, cash flow, leverage, liquidity, flexibility, accounting quality, asset quality, and debt structure.",
+      "subfactors": {
+        "profitability": 0.18,
+        "cash_flow": 0.18,
+        "leverage": 0.16,
+        "liquidity": 0.14,
+        "financial_flexibility": 0.1,
+        "accounting_quality": 0.08,
+        "asset_quality": 0.08,
+        "debt_structure_quality": 0.08
+      }
+    }
+  },
+  "engine_id": "BIZAIPRO_BASELINE",
+  "engine_label": "BizAiPro baseline (pre-APE)",
+  "engine_purpose": "fallback / pre-learning baseline"
+}

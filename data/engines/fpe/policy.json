@@ -1,0 +1,59 @@
+{
+  "engine_name": "FPE_v.16.01",
+  "version": "16.01",
+  "policy_source": "276holdings_limit_policy_manual",
+  "base_sales_ratio": 0.0075,
+  "conservative_sales_ratio": 0.005,
+  "grade_factors": {
+    "A": 4.0,
+    "B": 1.5,
+    "C": 1.0,
+    "D": 0.5,
+    "E": 0.0
+  },
+  "transaction_execution_ratios": {
+    "A": 1.0,
+    "B": 0.8,
+    "C": 0.5
+  },
+  "conservative_transaction_execution_ratios": {
+    "A": 1.0,
+    "B": 0.6,
+    "C": 0.5
+  },
+  "margin": {
+    "base_margin_pct": 5.0,
+    "minimum_margin_pct": 2.0,
+    "negotiation_band_pct": 1.5,
+    "tenor_premium_by_days": [
+      {"max_days": 30, "premium_pct": 0.0},
+      {"max_days": 60, "premium_pct": 1.0},
+      {"max_days": 90, "premium_pct": 2.0},
+      {"max_days": 9999, "premium_pct": 3.0}
+    ],
+    "credit_enhancement_adjustment_pct": {
+      "strong": -1.5,
+      "standard": -0.5,
+      "none": 1.5,
+      "unknown": 0.5
+    }
+  },
+  "positive_limit_adjustment_cap": 0.2,
+  "negative_limit_adjustment_min": -0.5,
+  "fast_track": {
+    "max_amount_krw": 20000000,
+    "max_tenor_days": 90,
+    "min_clean_transactions": 1
+  },
+  "delegation": {
+    "team_limit_krw": 50000000,
+    "management_limit_krw": 200000000
+  },
+  "knockout": {
+    "excluded_credit_grades": ["CCC-", "CC", "C", "D"],
+    "excluded_industries": ["gambling", "adult", "mlm"],
+    "exclude_complete_capital_impairment": true,
+    "exclude_tax_arrears": true,
+    "exclude_recent_legal_action_years": 3
+  }
+}

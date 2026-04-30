@@ -1,0 +1,132 @@
+{
+  "analysis_type": "flowpay_underwriting",
+  "engine_version": "v.1.18.02",
+  "company_name": "TEST_FPE_BLOCKED",
+  "requested_tenor_months": 2,
+  "industry_profile": {
+    "industry_tag": "manufacturing",
+    "industry_text": "제조업"
+  },
+  "financials": {
+    "annual_sales": 10000000000,
+    "operating_profit": 500000000,
+    "net_profit": 300000000,
+    "gross_profit": 850000000,
+    "gross_margin_pct": 8.5,
+    "operating_margin_pct": 5.0,
+    "net_margin_pct": 3.0,
+    "ebitda_interest_coverage": 2.5,
+    "cash_conversion_cycle_days": 90
+  },
+  "screening": {
+    "business_years": 8.0,
+    "startup_fast_track_supported": false,
+    "credit_grade": "CCC-"
+  },
+  "data_quality": {
+    "data_confidence": 1.0,
+    "missing_fields": []
+  },
+  "applicant": {
+    "scores": {
+      "financial": {
+        "annual_sales_scale": 70.0,
+        "revenue_stability": 70.0,
+        "operating_profitability": 70.0,
+        "net_profitability": 70.0,
+        "liquidity_cashflow": 70.0,
+        "leverage": 70.0
+      },
+      "business": {
+        "onsite_business_alignment": 70.0,
+        "registry_business_alignment": 70.0,
+        "industry_condition": 70.0,
+        "business_model_resilience": 70.0,
+        "external_funding_validation": 70.0,
+        "customer_diversification": 70.0
+      },
+      "management": {
+        "representative_execution": 70.0,
+        "actual_manager_match": 70.0,
+        "shareholder_structure": 70.0,
+        "representative_history": 70.0,
+        "employee_history": 70.0,
+        "governance_control": 70.0
+      },
+      "compliance": {
+        "national_tax_compliance": 70.0,
+        "local_tax_compliance": 70.0,
+        "four_insurance_compliance": 70.0,
+        "trade_delinquency": 70.0,
+        "loan_delinquency": 70.0,
+        "legal_dispute_status": 70.0
+      },
+      "external": {
+        "corporate_credit_grade_signal": 70.0,
+        "dart_signal": 70.0,
+        "ecos_signal": 70.0,
+        "cretop_signal": 70.0,
+        "public_reputation": 70.0,
+        "employee_reputation": 70.0
+      }
+    }
+  },
+  "buyer": {
+    "scores": {
+      "financial": {
+        "buyer_revenue_scale": 70.0,
+        "buyer_profitability": 70.0,
+        "buyer_liquidity": 70.0,
+        "buyer_leverage": 70.0,
+        "buyer_cashflow": 70.0
+      },
+      "business": {
+        "buyer_industry_condition": 70.0,
+        "buyer_business_stability": 70.0,
+        "buyer_market_position": 70.0,
+        "buyer_reputation": 70.0,
+        "buyer_registry_alignment": 70.0
+      },
+      "payment": {
+        "payment_history": 70.0,
+        "settlement_stability": 70.0,
+        "invoice_acceptance_clarity": 70.0,
+        "dispute_setoff_risk": 70.0,
+        "concentration_risk": 70.0,
+        "delay_pattern": 70.0
+      },
+      "external": {
+        "buyer_credit_grade_signal": 70.0,
+        "buyer_dart_signal": 70.0,
+        "buyer_ecos_signal": 70.0,
+        "buyer_cretop_signal": 70.0,
+        "buyer_funding_signal": 70.0
+      }
+    }
+  },
+  "transaction": {
+    "scores": {
+      "structure": {
+        "order_authenticity": 70.0,
+        "contract_enforceability": 70.0,
+        "delivery_verification": 70.0,
+        "invoice_proof": 70.0,
+        "recourse_strength": 70.0,
+        "fraud_control_strength": 70.0
+      },
+      "tenor": {
+        "cash_conversion_cycle_fit": 70.0,
+        "requested_tenor_fit": 70.0,
+        "seller_survival_buffer": 70.0,
+        "buyer_survival_buffer": 70.0,
+        "emergency_liquidity_backstop": 70.0
+      },
+      "macro": {
+        "industry_outlook": 70.0,
+        "macro_sensitivity": 70.0,
+        "commodity_volatility": 70.0,
+        "fx_or_policy_risk": 70.0
+      }
+    }
+  }
+}
