@@ -62,7 +62,7 @@ class TestEngineMeta:
     def test_ape_meta_constants(self):
         assert ape.META.engine_id == "APE"
         assert ape.META.engine_label == "APE_v1.01"
-        assert ape.META.engine_purpose == "learning_proposal"
+        assert ape.META.engine_purpose == "learning_comparison"
         assert ape.META.engine_locked is False
 
     def test_fpe_meta_constants(self):

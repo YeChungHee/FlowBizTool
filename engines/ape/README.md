@@ -9,7 +9,7 @@
 | engine_id | `APE` |
 | engine_label | `APE_v1.01` |
 | engine_locked | `false` (학습 가능) |
-| engine_purpose | `learning_proposal` |
+| engine_purpose | `learning_comparison` |
 | policy_source | `bizaipro_learning_loop` |
 
 ## 모듈 구조

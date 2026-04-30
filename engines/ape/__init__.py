@@ -34,7 +34,7 @@ META = EngineMeta(
     engine_label="APE_v1.01",
     engine_version="v.1.18.02",  # 동적: get_active_framework_meta()도 노출
     engine_locked=False,
-    engine_purpose="learning_proposal",
+    engine_purpose="learning_comparison",
     policy_source="bizaipro_learning_loop",
 )
 
