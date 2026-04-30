@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <!-- P2-2 [codex] B1 정정: width=1200 → device-width (반응형 검증) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowBizTool v2 — 컴포넌트 미리보기</title>
+
+  <link rel="stylesheet" href="./styles/v2_tokens.css?v=20260501">
+  <link rel="stylesheet" href="./styles/v2_components.css?v=20260501">
+
+  <style>
+    .preview-section {
+      padding: var(--fbu-space-6) 0;
+      border-bottom: 1px dashed var(--fbu-color-border);
+    }
+    .preview-section:last-child { border-bottom: 0; }
+    .preview-section__title {
+      font-size: var(--fbu-font-size-xs);
+      font-weight: var(--fbu-font-weight-bold);
+      color: var(--fbu-color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: var(--fbu-letter-spacing-wide);
+      margin: 0 0 var(--fbu-space-4);
+    }
+    .preview-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--fbu-space-3);
+      align-items: center;
+      margin-bottom: var(--fbu-space-3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. fbu-header -->
+  <header class="fbu-header">
+    <div class="fbu-header__brand">FlowBizTool</div>
+    <nav class="fbu-header__nav">
+      <a href="#" class="is-active">홈</a>
+      <a href="#">평가결과</a>
+      <a href="#">제안서</a>
+      <a href="#">이메일</a>
+      <a href="#">엔진비교</a>
+      <a href="#">changelog</a>
+      <a href="#">엔진관리</a>
+    </nav>
+  </header>
+
+  <main class="fbu-main">
+
+    <h1 style="font-size: var(--fbu-font-size-h1); font-weight: 800; margin: 0;">
+      v2 컴포넌트 미리보기 — 22종
+    </h1>
+    <p style="color: var(--fbu-color-text-tertiary); margin: 0;">
+      FBU-CSS-V2-COMPONENTS-20260501 · 핵심 10개 computed style 기준 100% 정합 · §3.3 7항 원칙 적용
+    </p>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">1. KPI Display + Card</h2>
+
+      <div class="fbu-grid fbu-grid--cols-2">
+        <div class="fbu-card fbu-card--kpi-large">
+          <p class="fbu-kpi-label">합의 점수</p>
+          <h3 class="fbu-kpi-display">82</h3>
+          <div class="fbu-progress">
+            <div class="fbu-progress__bar is-success" style="width: 82%"></div>
+          </div>
+          <div class="fbu-flex">
+            <div style="flex:1">
+              <p class="fbu-kpi-label">FPE</p>
+              <p class="fbu-kpi-sub">82</p>
+            </div>
+            <div style="flex:1">
+              <p class="fbu-kpi-label">APE</p>
+              <p class="fbu-kpi-sub">85<span class="fbu-kpi-diff is-positive">+3</span></p>
+            </div>
+          </div>
+          <div>
+            <span class="fbu-consensus-badge fbu-consensus-badge--both-go">양쪽 통과</span>
+          </div>
+        </div>
+
+        <div class="fbu-flex" style="flex-direction: column">
+          <div class="fbu-card fbu-card--kpi-medium">
+            <p class="fbu-kpi-label">거래 한도 (FPE 기준)</p>
+            <h3 class="fbu-kpi-title">5억원</h3>
+          </div>
+          <div class="fbu-card fbu-card--kpi-medium">
+            <p class="fbu-kpi-label">마진율 (FPE 기준)</p>
+            <h3 class="fbu-kpi-title">2.4%</h3>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">2. FPE/APE 듀얼 카드 (§3.3 #1-#3)</h2>
+
+      <div class="fbu-grid fbu-grid--cols-2">
+        <div class="fbu-card fbu-card--engine-fpe">
+          <p class="fbu-kpi-label">FPE_v.16.01 ⚓ locked</p>
+          <h3 class="fbu-kpi-display">82</h3>
+          <p style="font-size: var(--fbu-font-size-xs); color: var(--fbu-color-text-tertiary)">
+            knockout: 없음<br>
+            policy_source: 276holdings_limit_policy
+          </p>
+          <span class="fbu-consensus-badge fbu-consensus-badge--both-go">양쪽 통과</span>
+        </div>
+
+        <div class="fbu-card fbu-card--engine-ape">
+          <p class="fbu-kpi-label">APE_v1.01 (learning_comparison)</p>
+          <h3 class="fbu-kpi-display">85<span class="fbu-kpi-diff is-positive">+3</span></h3>
+          <p style="font-size: var(--fbu-font-size-xs); color: var(--fbu-color-text-tertiary)">
+            FPE 대비 +3 차이<br>
+            policy_source: bizaipro_learning_loop
+          </p>
+          <p style="font-size: var(--fbu-font-size-xxs); color: var(--fbu-color-ape-accent); font-weight: 700">
+            ✓ 학습 후보 저장됨 (선택 불가)
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">3. 합의 배지 5색 (§3.3)</h2>
+
+      <div class="preview-row">
+        <span class="fbu-consensus-badge fbu-consensus-badge--both-go">양쪽 통과</span>
+        <span class="fbu-consensus-badge fbu-consensus-badge--fpe-blocked">FPE 차단</span>
+        <span class="fbu-consensus-badge fbu-consensus-badge--ape-only-positive">APE만 통과</span>
+        <span class="fbu-consensus-badge fbu-consensus-badge--ape-blocked">APE 차단 (v3)</span>
+        <span class="fbu-consensus-badge fbu-consensus-badge--both-review">양쪽 보류</span>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">4. SourceQuality (§3.3 #4 #7)</h2>
+
+      <div class="fbu-source-quality">
+        <p class="fbu-source-quality__title">Source Quality</p>
+        <div class="fbu-source-item">
+          <span class="fbu-source-item__indicator is-pass"></span>
+          <span class="fbu-source-item__label">기업리포트</span>
+          <span class="fbu-source-item__count">수집 완료</span>
+        </div>
+        <div class="fbu-source-item">
+          <span class="fbu-source-item__indicator is-pass"></span>
+          <span class="fbu-source-item__label">상담보고서 family</span>
+          <span class="fbu-source-item__count">13건 (전화 7 / 직접 6)</span>
+        </div>
+        <div class="fbu-source-item">
+          <span class="fbu-source-item__indicator is-pass"></span>
+          <span class="fbu-source-item__label">심사보고서</span>
+          <span class="fbu-source-item__count">5건 (품질 통과)</span>
+        </div>
+        <div class="fbu-source-item">
+          <span class="fbu-source-item__indicator is-warn"></span>
+          <span class="fbu-source-item__label">평가 반영 상태</span>
+          <span class="fbu-source-item__count">FPE ✓ / APE 학습 후보 +3</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">5. 검색바 + 칩</h2>
+
+      <div class="fbu-flex" style="flex-direction: column">
+        <div class="fbu-searchbar">
+          <span style="color: var(--fbu-color-text-muted)">🔍</span>
+          <input type="search" class="fbu-searchbar__input"
+                 placeholder="기업명 / 사업자번호 검색...">
+        </div>
+
+        <div class="preview-row">
+          <span class="fbu-chip is-active">활성 <span class="fbu-chip__count">12</span></span>
+          <span class="fbu-chip">pending <span class="fbu-chip__count">3</span></span>
+          <span class="fbu-chip">반려 <span class="fbu-chip__count">2</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">6. 테이블</h2>
+
+      <table class="fbu-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>기업명</th>
+            <th>평가일</th>
+            <th class="is-numeric">FPE</th>
+            <th class="is-numeric">APE</th>
+            <th>합의</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>#023</td>
+            <td>ABC산업㈜</td>
+            <td>2026-04-30</td>
+            <td class="is-numeric">82</td>
+            <td class="is-numeric">85</td>
+            <td><span class="fbu-consensus-badge fbu-consensus-badge--both-go">통과</span></td>
+          </tr>
+          <tr>
+            <td>#022</td>
+            <td>XYZ제조㈜</td>
+            <td>2026-04-29</td>
+            <td class="is-numeric">45</td>
+            <td class="is-numeric">50</td>
+            <td><span class="fbu-consensus-badge fbu-consensus-badge--fpe-blocked">차단</span></td>
+          </tr>
+          <tr>
+            <td>#021</td>
+            <td>한솥㈜</td>
+            <td>2026-04-28</td>
+            <td class="is-numeric">78</td>
+            <td class="is-numeric">82</td>
+            <td><span class="fbu-consensus-badge fbu-consensus-badge--both-go">통과</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">7. 차단 배너 (§3.3 #1)</h2>
+
+      <div class="fbu-blocked-banner">
+        <span class="fbu-blocked-banner__icon">⚠️</span>
+        <div style="flex:1">
+          <p class="fbu-blocked-banner__title">본 영업건은 FPE 기준 미충족 — 제안서 생성 불가</p>
+          <ul class="fbu-blocked-banner__reasons">
+            <li>신용등급 CCC (D 이하 자동 차단)</li>
+            <li>매출 감소 추세 (최근 3분기 연속)</li>
+          </ul>
+          <p class="fbu-blocked-banner__action">
+            필요 조치: 신용등급 개선 또는 보증 제공 · <a href="#">관리자에게 문의 →</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">8. 버튼</h2>
+
+      <div class="preview-row">
+        <button class="fbu-button fbu-button--small">small</button>
+        <button class="fbu-button">기본</button>
+        <button class="fbu-button fbu-button--large">large</button>
+        <button class="fbu-button fbu-button--primary">제안서 생성하기 →</button>
+        <button class="fbu-button fbu-button--primary fbu-button--large">이메일 작성 →</button>
+        <button class="fbu-button fbu-button--danger">차단</button>
+        <button class="fbu-button" disabled>disabled</button>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">9. 상태 카드 5종 (§3.3 #5 — v6 [codex] F4)</h2>
+
+      <div class="fbu-grid fbu-grid--cols-5">
+        <div class="fbu-status-card fbu-status-card--pending">
+          <p class="fbu-status-card__count">3</p>
+          <p class="fbu-status-card__label">검토 대기</p>
+        </div>
+        <div class="fbu-status-card fbu-status-card--approved">
+          <p class="fbu-status-card__count">12</p>
+          <p class="fbu-status-card__label">승인됨</p>
+        </div>
+        <div class="fbu-status-card fbu-status-card--on-hold">
+          <p class="fbu-status-card__count">2</p>
+          <p class="fbu-status-card__label">보류</p>
+        </div>
+        <div class="fbu-status-card fbu-status-card--rejected">
+          <p class="fbu-status-card__count">2</p>
+          <p class="fbu-status-card__label">반려</p>
+        </div>
+        <div class="fbu-status-card fbu-status-card--promoted">
+          <p class="fbu-status-card__count">5</p>
+          <p class="fbu-status-card__label">반영 완료</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">10. 탭</h2>
+
+      <div class="fbu-tabs">
+        <button class="fbu-tab is-active">전체</button>
+        <button class="fbu-tab">FPE 승격</button>
+        <button class="fbu-tab">APE 학습</button>
+        <button class="fbu-tab">월간 보고서</button>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">11. 입력 폼 + FPE 잠금 (§3.3 #1)</h2>
+
+      <fieldset class="fbu-form-fieldset">
+        <div>
+          <label class="fbu-input-label">회사명</label>
+          <input type="text" class="fbu-input" value="ABC산업㈜">
+        </div>
+        <div>
+          <label class="fbu-input-label">대표자</label>
+          <input type="text" class="fbu-input" placeholder="김대표">
+        </div>
+        <div class="fbu-input-wrapper is-fpe-locked">
+          <label class="fbu-input-label">제안 한도 (FPE 자동)</label>
+          <input type="text" class="fbu-input fbu-input--readonly" value="5억원" readonly>
+        </div>
+        <div class="fbu-input-wrapper is-fpe-locked">
+          <label class="fbu-input-label">마진율 (FPE 자동)</label>
+          <input type="text" class="fbu-input fbu-input--readonly" value="2.4%" readonly>
+        </div>
+        <div class="fbu-input-wrapper is-fpe-locked">
+          <label class="fbu-input-label">결제유예 (FPE 자동)</label>
+          <input type="text" class="fbu-input fbu-input--readonly" value="60일" readonly>
+        </div>
+        <div class="preview-row">
+          <button class="fbu-button">임시저장</button>
+          <button class="fbu-button fbu-button--primary">제안서 생성 →</button>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- ============================================================ -->
+    <section class="preview-section">
+      <h2 class="preview-section__title">12. 입력 폼 + FPE 차단 (disabled)</h2>
+
+      <fieldset class="fbu-form-fieldset" disabled>
+        <div class="fbu-blocked-banner">
+          <span class="fbu-blocked-banner__icon">⚠️</span>
+          <div style="flex:1">
+            <p class="fbu-blocked-banner__title">FPE 차단 중 — 모든 폼 입력 비활성화</p>
+          </div>
+        </div>
+        <div>
+          <label class="fbu-input-label">회사명</label>
+          <input type="text" class="fbu-input" value="TestCCC">
+        </div>
+        <div>
+          <button class="fbu-button fbu-button--primary">제안서 생성 →</button>
+        </div>
+      </fieldset>
+    </section>
+
+  </main>
+
+</body>
+</html>

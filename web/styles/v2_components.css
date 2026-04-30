@@ -1,0 +1,898 @@
+/* ============================================================
+ * FlowBizTool v2 Standalone 디자인 컴포넌트 클래스
+ * ============================================================
+ * 문서번호: FBU-CSS-V2-COMPONENTS-20260501
+ * 작성일:   2026-05-01
+ * 작성자:   [claude]
+ *
+ * 의존:     web/styles/v2_tokens.css (CSS 변수 정의)
+ * 사용처:   v2 마이그레이션된 페이지 + 신규 화면
+ * 출처:     outputs/reference/v2_tokens_rendered.json (Toss/Pretendard 실측)
+ *
+ * 컴포넌트 22종 (3차 PR §3.3 7항 원칙 매핑):
+ *   1. .fbu-header                     글로벌 다크 헤더 (실측: 흰색)
+ *   2. .fbu-card                       기본 카드
+ *   3. .fbu-card--kpi-large            큰 KPI 카드
+ *   4. .fbu-card--kpi-medium           중형 KPI 카드
+ *   5. .fbu-card--engine-fpe           FPE 카드 (강조)
+ *   6. .fbu-card--engine-ape           APE 카드 (opacity 0.85)
+ *   7. .fbu-kpi-display                84px 거대 숫자 → 24px (rendered)
+ *   8. .fbu-kpi-title                  중형 KPI 타이틀
+ *   9. .fbu-kpi-sub                    sub card 내부 작은 숫자
+ *  10. .fbu-progress                   progress bar
+ *  11. .fbu-consensus-badge            합의 배지 5색
+ *  12. .fbu-source-quality             SourceQuality 영역
+ *  13. .fbu-source-item                source 항목
+ *  14. .fbu-searchbar                  검색바
+ *  15. .fbu-chip                       필터 칩
+ *  16. .fbu-table                      테이블
+ *  17. .fbu-blocked-banner             FPE 차단 배너
+ *  18. .fbu-button                     기본 버튼
+ *  19. .fbu-button--primary            primary 버튼
+ *  20. .fbu-status-card                상태 카드 (pending/approved/...)
+ *  21. .fbu-tab                        탭 컴포넌트
+ *  22. .fbu-input + --readonly         input 필드
+ * ============================================================ */
+
+/* ============================================================
+ * 0. Box-sizing reset — F3 [codex] B1-P2-fix P1 정정
+ * ============================================================
+ * 모바일 수평 overflow 차단:
+ *   .fbu-input { width: 100%; padding: 0 12px } 등이 부모보다 넓어지는 현상 방지
+ *   모든 .fbu-* 컴포넌트에 border-box 강제
+ */
+.fbu-header,
+.fbu-card,
+.fbu-button,
+.fbu-input,
+.fbu-input-wrapper,
+.fbu-table,
+.fbu-searchbar,
+.fbu-chip,
+.fbu-blocked-banner,
+.fbu-source-quality,
+.fbu-status-card,
+.fbu-tab,
+.fbu-form-fieldset,
+.fbu-main {
+  box-sizing: border-box;
+}
+
+/* ============================================================
+ * 1. .fbu-header — 글로벌 헤더
+ * ============================================================
+ * 3차 PR §3.3 #6: AppleGothic → Pretendard 우선 (예외 문서화)
+ * rendered: bg #FFFFFF, height 60px, padding 0 24px, color #191F28
+ */
+.fbu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--fbu-header-height);
+  padding: 0 var(--fbu-header-padding-x);
+  background: var(--fbu-color-bg-header);
+  color: var(--fbu-color-text-primary);
+  border-bottom: 1px solid var(--fbu-color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--fbu-z-sticky);
+}
+
+.fbu-header__brand {
+  font-size: var(--fbu-font-size-base);
+  font-weight: var(--fbu-font-weight-bold);
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--fbu-space-6);
+}
+
+.fbu-header__nav a {
+  color: var(--fbu-color-text-secondary);
+  text-decoration: none;
+  font-size: var(--fbu-font-size-sm);
+  font-weight: var(--fbu-font-weight-medium);
+  transition: color var(--fbu-transition-fast);
+}
+
+.fbu-header__nav a:hover {
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-header__nav a.is-active {
+  color: var(--fbu-color-text-primary);
+  font-weight: var(--fbu-font-weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* ============================================================
+ * 2. .fbu-card — 기본 카드
+ * ============================================================
+ * rendered: bg #FFFFFF, border 1px solid #E5E8EB, radius 12px, padding 20px
+ */
+.fbu-card {
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-radius: var(--fbu-radius-xl);
+  padding: var(--fbu-card-padding);
+}
+
+.fbu-card__title {
+  font-size: var(--fbu-font-size-h2);
+  font-weight: var(--fbu-font-weight-bold);
+  color: var(--fbu-color-text-primary);
+  margin: 0 0 var(--fbu-space-3);
+}
+
+.fbu-card__subtitle {
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-tertiary);
+  margin: 0 0 var(--fbu-space-4);
+}
+
+/* ============================================================
+ * 3-4. .fbu-card--kpi-large / --kpi-medium
+ * ============================================================
+ * Hero KPI / 보조 KPI 카드 (홈 + evaluation_result)
+ * 본 디자인은 SVG thumbnail의 84px 거대 숫자가 아닌 24px h3
+ */
+.fbu-card--kpi-large {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fbu-space-4);
+  /* C1 정정: standalone 일관 padding 20px 유지 (24px 가정 폐기) */
+  padding: var(--fbu-card-padding);
+}
+
+.fbu-card--kpi-medium {
+  padding: var(--fbu-card-padding);
+}
+
+/* ============================================================
+ * 5-6. .fbu-card--engine-fpe / --engine-ape
+ * ============================================================
+ * 3차 PR §3.3 #1-#3:
+ *   - FPE 카드: 명도 100%, 강조 (제안서/이메일 기준)
+ *   - APE 카드: opacity 0.85 + 살짝 회색 배경 (비교 전용)
+ *   - APE 영역에 액션 버튼 / 라디오 / 체크박스 절대 배치 금지
+ */
+.fbu-card--engine-fpe {
+  background: var(--fbu-color-fpe-bg);
+  border: 1px solid var(--fbu-color-border);
+  border-left: 3px solid var(--fbu-color-fpe-accent);
+  position: relative;
+}
+
+.fbu-card--engine-fpe::before {
+  content: "FPE 기준";
+  position: absolute;
+  top: var(--fbu-space-3);
+  right: var(--fbu-space-3);
+  font-size: var(--fbu-font-size-xxs);
+  color: var(--fbu-color-fpe-accent);
+  font-weight: var(--fbu-font-weight-bold);
+}
+
+.fbu-card--engine-ape {
+  background: var(--fbu-color-ape-bg);
+  border: 1px solid var(--fbu-color-border);
+  border-left: 3px solid var(--fbu-color-ape-secondary);
+  opacity: var(--fbu-opacity-comparison);
+  position: relative;
+}
+
+.fbu-card--engine-ape::before {
+  content: "APE 비교 (참고)";
+  position: absolute;
+  top: var(--fbu-space-3);
+  right: var(--fbu-space-3);
+  font-size: var(--fbu-font-size-xxs);
+  color: var(--fbu-color-ape-secondary);
+  font-weight: var(--fbu-font-weight-bold);
+}
+
+/* §3.3 #2 강제: APE 카드 내부 button/input/radio/checkbox 시각 비활성화 */
+.fbu-card--engine-ape button,
+.fbu-card--engine-ape input,
+.fbu-card--engine-ape select,
+.fbu-card--engine-ape textarea {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+ * 7-9. .fbu-kpi-display / -title / -sub
+ * ============================================================
+ * rendered: KPI display 24px h3 weight 800 (84px 가정 폐기)
+ */
+.fbu-kpi-display {
+  font-size: var(--fbu-font-size-display);
+  font-weight: var(--fbu-font-weight-heavy);
+  line-height: var(--fbu-line-height-display);
+  letter-spacing: var(--fbu-letter-spacing-tight);
+  color: var(--fbu-color-text-primary);
+  margin: 0;
+}
+
+.fbu-kpi-display.is-on-dark {
+  color: var(--fbu-color-text-on-dark);
+}
+
+.fbu-kpi-title {
+  font-size: var(--fbu-font-size-h1);
+  font-weight: var(--fbu-font-weight-bold);
+  line-height: var(--fbu-line-height-snug);
+  color: var(--fbu-color-text-primary);
+  margin: 0;
+}
+
+.fbu-kpi-sub {
+  font-size: var(--fbu-font-size-h2);
+  font-weight: var(--fbu-font-weight-semibold);
+  color: var(--fbu-color-text-secondary);
+  margin: 0;
+}
+
+.fbu-kpi-label {
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-muted);
+  margin: 0 0 var(--fbu-space-1);
+}
+
+/* APE 차이 표시 */
+.fbu-kpi-diff {
+  font-size: var(--fbu-font-size-xs);
+  font-weight: var(--fbu-font-weight-semibold);
+  color: var(--fbu-color-ape-accent);
+  display: inline-block;
+  margin-left: var(--fbu-space-2);
+}
+
+.fbu-kpi-diff.is-positive { color: var(--fbu-color-success); }
+.fbu-kpi-diff.is-negative { color: var(--fbu-color-error); }
+
+/* ============================================================
+ * 10. .fbu-progress — Progress bar
+ * ============================================================
+ */
+.fbu-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--fbu-color-bg-section);
+  border-radius: var(--fbu-radius-full);
+  overflow: hidden;
+}
+
+.fbu-progress__bar {
+  height: 100%;
+  background: var(--fbu-color-primary);
+  border-radius: var(--fbu-radius-full);
+  transition: width var(--fbu-transition-base);
+}
+
+.fbu-progress__bar.is-success { background: var(--fbu-color-success); }
+.fbu-progress__bar.is-warning { background: var(--fbu-color-warning); }
+.fbu-progress__bar.is-error   { background: var(--fbu-color-error); }
+
+/* ============================================================
+ * 11. .fbu-consensus-badge — 합의 배지 5색
+ * ============================================================
+ * 3차 PR §3.3 #1-#3 + v6 [codex] F4 P2: 5 상태
+ * rendered: pill 999px (가장 흔함, 23 사용)
+ */
+.fbu-consensus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fbu-space-1);
+  height: var(--fbu-badge-height);
+  padding: 0 var(--fbu-badge-padding-x);
+  border-radius: var(--fbu-radius-full);
+  font-size: var(--fbu-font-size-xxs);
+  font-weight: var(--fbu-font-weight-bold);
+  color: var(--fbu-color-consensus-text);
+  white-space: nowrap;
+}
+
+.fbu-consensus-badge::before {
+  content: "●";
+  font-size: var(--fbu-font-size-xxs);
+}
+
+.fbu-consensus-badge--both-go           { background: var(--fbu-color-consensus-both-go); }
+.fbu-consensus-badge--fpe-blocked       { background: var(--fbu-color-consensus-fpe-blocked); }
+.fbu-consensus-badge--ape-only-positive { background: var(--fbu-color-consensus-ape-only-positive); }
+.fbu-consensus-badge--ape-blocked       { background: var(--fbu-color-consensus-ape-blocked); }
+.fbu-consensus-badge--both-review       { background: var(--fbu-color-consensus-both-review); }
+
+/* ============================================================
+ * 12-13. .fbu-source-quality / -item
+ * ============================================================
+ * 3차 PR §3.3 #4 (상담 family) + #7 (SourceQuality)
+ */
+.fbu-source-quality {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fbu-space-3);
+  padding: var(--fbu-spacing-source-quality);
+  background: var(--fbu-color-bg-section);
+  border-radius: var(--fbu-radius-md);
+}
+
+.fbu-source-quality__title {
+  font-size: var(--fbu-font-size-xs);
+  font-weight: var(--fbu-font-weight-bold);
+  color: var(--fbu-color-text-secondary);
+  margin: 0 0 var(--fbu-space-2);
+  text-transform: uppercase;
+  letter-spacing: var(--fbu-letter-spacing-wide);
+}
+
+.fbu-source-item {
+  display: flex;
+  align-items: center;
+  gap: var(--fbu-space-2);
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-secondary);
+}
+
+.fbu-source-item__indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--fbu-radius-circle);
+  flex-shrink: 0;
+}
+
+.fbu-source-item__indicator.is-pass  { background: var(--fbu-color-source-pass); }
+.fbu-source-item__indicator.is-warn  { background: var(--fbu-color-source-warn); }
+.fbu-source-item__indicator.is-fail  { background: var(--fbu-color-source-fail); }
+.fbu-source-item__indicator.is-empty { background: var(--fbu-color-source-empty); }
+
+.fbu-source-item__label {
+  font-weight: var(--fbu-font-weight-medium);
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-source-item__count {
+  margin-left: auto;
+  color: var(--fbu-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * 14. .fbu-searchbar
+ * ============================================================
+ */
+.fbu-searchbar {
+  display: flex;
+  align-items: center;
+  gap: var(--fbu-space-3);
+  height: var(--fbu-searchbar-height);
+  padding: 0 var(--fbu-space-4);
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-radius: var(--fbu-radius-md);
+  transition: border-color var(--fbu-transition-fast);
+}
+
+.fbu-searchbar:focus-within {
+  border-color: var(--fbu-color-primary);
+}
+
+.fbu-searchbar__input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-searchbar__input::placeholder {
+  color: var(--fbu-color-text-muted);
+}
+
+/* ============================================================
+ * 15. .fbu-chip — 필터 칩
+ * ============================================================
+ * rendered: small radius / padding 6px 10px / fontSize 12px
+ */
+.fbu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fbu-space-1);
+  padding: var(--fbu-space-1) var(--fbu-space-3);
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-radius: var(--fbu-radius-full);
+  font-size: var(--fbu-font-size-xxs);
+  font-weight: var(--fbu-font-weight-medium);
+  color: var(--fbu-color-text-secondary);
+  cursor: pointer;
+  transition: all var(--fbu-transition-fast);
+}
+
+.fbu-chip:hover {
+  border-color: var(--fbu-color-border-strong);
+}
+
+.fbu-chip.is-active {
+  background: var(--fbu-color-primary);
+  border-color: var(--fbu-color-primary);
+  color: var(--fbu-color-text-on-dark);
+}
+
+.fbu-chip__count {
+  color: inherit;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * 16. .fbu-table
+ * ============================================================
+ * rendered: 테이블 미발견 → 본 정의는 v2 디자인 추정
+ *           Phase 3 마이그레이션 시 standalone 갱신 후 재추출 권장
+ */
+.fbu-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-radius: var(--fbu-radius-xl);
+  overflow: hidden;
+}
+
+.fbu-table th,
+.fbu-table td {
+  padding: var(--fbu-space-3) var(--fbu-table-cell-padding);
+  text-align: left;
+  font-size: var(--fbu-font-size-xs);
+  border-bottom: 1px solid var(--fbu-color-divider);
+}
+
+.fbu-table thead th {
+  height: var(--fbu-table-header-height);
+  background: var(--fbu-color-bg-section);
+  font-size: var(--fbu-font-size-xxs);
+  font-weight: var(--fbu-font-weight-bold);
+  color: var(--fbu-color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--fbu-letter-spacing-wide);
+}
+
+.fbu-table tbody tr {
+  transition: background-color var(--fbu-transition-fast);
+}
+
+.fbu-table tbody tr:hover {
+  background: var(--fbu-color-bg-section);
+}
+
+.fbu-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fbu-table td.is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * 17. .fbu-blocked-banner — FPE 차단 배너
+ * ============================================================
+ * 3차 PR §3.3 #1: FPE knockout 시 proposal/email disabled
+ */
+.fbu-blocked-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--fbu-space-3);
+  padding: var(--fbu-space-4) var(--fbu-space-5);
+  background: var(--fbu-color-bg-red-pale);
+  border: 1px solid var(--fbu-color-error);
+  border-left: 4px solid var(--fbu-color-error);
+  border-radius: var(--fbu-radius-md);
+  color: var(--fbu-color-error);
+}
+
+.fbu-blocked-banner.is-hidden {
+  display: none;
+}
+
+.fbu-blocked-banner__icon {
+  flex-shrink: 0;
+  font-size: var(--fbu-font-size-h2);
+  line-height: 1;
+}
+
+.fbu-blocked-banner__title {
+  font-size: var(--fbu-font-size-base);
+  font-weight: var(--fbu-font-weight-bold);
+  margin: 0 0 var(--fbu-space-2);
+}
+
+.fbu-blocked-banner__reasons {
+  list-style: disc;
+  padding-left: var(--fbu-space-5);
+  margin: 0;
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-blocked-banner__reasons li {
+  margin-bottom: var(--fbu-space-1);
+}
+
+.fbu-blocked-banner__action {
+  margin-top: var(--fbu-space-3);
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-secondary);
+}
+
+/* ============================================================
+ * 18-19. .fbu-button / --primary
+ * ============================================================
+ * rendered: padding 6px 10px (small) or 8px 14px (large)
+ *           fontSize 12px (small) or 13px (large)
+ *           radius 10px (rendered 8 사용)
+ */
+.fbu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--fbu-space-2);
+  height: var(--fbu-button-height);
+  padding: 0 var(--fbu-button-padding-x);
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border-strong);
+  border-radius: var(--fbu-radius-lg);
+  color: var(--fbu-color-text-secondary);
+  font-family: inherit;
+  font-size: var(--fbu-font-size-xs);
+  font-weight: var(--fbu-font-weight-medium);
+  cursor: pointer;
+  transition: all var(--fbu-transition-fast);
+  white-space: nowrap;
+}
+
+.fbu-button:hover {
+  background: var(--fbu-color-bg-section);
+}
+
+.fbu-button:active {
+  transform: translateY(1px);
+}
+
+.fbu-button:disabled,
+.fbu-button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.fbu-button--small {
+  height: 28px;
+  padding: 0 var(--fbu-button-padding-x-sm);
+  font-size: var(--fbu-font-size-xxs);
+}
+
+.fbu-button--large {
+  height: var(--fbu-button-height-large);
+  padding: 0 var(--fbu-space-6);
+  font-size: var(--fbu-font-size-sm);
+}
+
+.fbu-button--primary {
+  background: var(--fbu-color-primary);
+  border-color: var(--fbu-color-primary);
+  color: var(--fbu-color-text-on-dark);
+}
+
+.fbu-button--primary:hover {
+  background: var(--fbu-color-primary-dark);
+  border-color: var(--fbu-color-primary-dark);
+}
+
+.fbu-button--primary:disabled,
+.fbu-button--primary[disabled] {
+  background: var(--fbu-color-primary);
+  border-color: var(--fbu-color-primary);
+}
+
+.fbu-button--danger {
+  background: var(--fbu-color-error);
+  border-color: var(--fbu-color-error);
+  color: var(--fbu-color-text-on-dark);
+}
+
+/* ============================================================
+ * 20. .fbu-status-card — 상태 카드 (5종)
+ * ============================================================
+ * v6 [codex] F4 P2 + 3차 PR §3.3 #5 (월간 보고서)
+ */
+.fbu-status-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--fbu-space-5);
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-top: 3px solid var(--fbu-color-status-pending);
+  border-radius: var(--fbu-radius-md);
+  min-width: 140px;
+  text-align: center;
+}
+
+.fbu-status-card__count {
+  font-size: var(--fbu-font-size-h1);
+  font-weight: var(--fbu-font-weight-heavy);
+  line-height: var(--fbu-line-height-tight);
+  color: var(--fbu-color-text-primary);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fbu-status-card__label {
+  font-size: var(--fbu-font-size-xs);
+  color: var(--fbu-color-text-muted);
+  margin: var(--fbu-space-2) 0 0;
+}
+
+.fbu-status-card--pending  { border-top-color: var(--fbu-color-status-pending); }
+.fbu-status-card--approved { border-top-color: var(--fbu-color-status-approved); }
+.fbu-status-card--on-hold  { border-top-color: var(--fbu-color-status-on-hold); }
+.fbu-status-card--rejected { border-top-color: var(--fbu-color-status-rejected); }
+.fbu-status-card--promoted { border-top-color: var(--fbu-color-status-promoted); }
+
+/* ============================================================
+ * 21. .fbu-tab — 탭 (changelog 등)
+ * ============================================================
+ */
+.fbu-tabs {
+  display: flex;
+  gap: var(--fbu-space-1);
+  border-bottom: 1px solid var(--fbu-color-border);
+  margin-bottom: var(--fbu-space-5);
+}
+
+.fbu-tab {
+  padding: var(--fbu-space-3) var(--fbu-space-5);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--fbu-color-text-tertiary);
+  font-family: inherit;
+  font-size: var(--fbu-font-size-xs);
+  font-weight: var(--fbu-font-weight-medium);
+  cursor: pointer;
+  transition: all var(--fbu-transition-fast);
+}
+
+.fbu-tab:hover {
+  color: var(--fbu-color-text-primary);
+}
+
+.fbu-tab.is-active {
+  color: var(--fbu-color-primary);
+  border-bottom-color: var(--fbu-color-primary);
+  font-weight: var(--fbu-font-weight-bold);
+}
+
+/* ============================================================
+ * 22. .fbu-input — Input 필드
+ * ============================================================
+ * 3차 PR §3.3 #1: FPE 값은 readonly 강제 (수정 불가)
+ */
+.fbu-input {
+  width: 100%;
+  height: var(--fbu-input-height);
+  padding: 0 var(--fbu-space-3);
+  background: var(--fbu-color-bg-card);
+  border: 1px solid var(--fbu-color-border);
+  border-radius: var(--fbu-radius-md);
+  color: var(--fbu-color-text-primary);
+  font-family: inherit;
+  font-size: var(--fbu-font-size-xs);
+  transition: border-color var(--fbu-transition-fast);
+}
+
+.fbu-input:focus {
+  outline: 0;
+  border-color: var(--fbu-color-primary);
+}
+
+.fbu-input::placeholder {
+  color: var(--fbu-color-text-muted);
+}
+
+/* §3.3 #1 강제: FPE 값 readonly 시각 구분 */
+.fbu-input--readonly,
+.fbu-input[readonly] {
+  background: var(--fbu-color-bg-section);
+  color: var(--fbu-color-text-secondary);
+  cursor: not-allowed;
+  position: relative;
+}
+
+.fbu-input-wrapper.is-fpe-locked {
+  position: relative;
+}
+
+.fbu-input-wrapper.is-fpe-locked::after {
+  content: "🔒 FPE 자동";
+  position: absolute;
+  right: var(--fbu-space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fbu-font-size-xxs);
+  color: var(--fbu-color-text-muted);
+  pointer-events: none;
+}
+
+.fbu-input-label {
+  display: block;
+  font-size: var(--fbu-font-size-xs);
+  font-weight: var(--fbu-font-weight-medium);
+  color: var(--fbu-color-text-secondary);
+  margin-bottom: var(--fbu-space-2);
+}
+
+/* ============================================================
+ * 부록: 폼 fieldset disabled 시각 (FPE 차단 시)
+ * ============================================================
+ */
+.fbu-form-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fbu-space-4);
+}
+
+.fbu-form-fieldset[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.fbu-form-fieldset[disabled] .fbu-input,
+.fbu-form-fieldset[disabled] .fbu-button {
+  cursor: not-allowed;
+}
+
+/* ============================================================
+ * 부록: 화면 레이아웃 헬퍼
+ * ============================================================
+ */
+.fbu-main {
+  max-width: var(--fbu-container-max-width);
+  margin: 0 auto;
+  padding: var(--fbu-space-8) var(--fbu-container-padding-x);
+  display: flex;
+  flex-direction: column;
+  gap: var(--fbu-space-6);
+}
+
+.fbu-grid {
+  display: grid;
+  gap: var(--fbu-space-5);
+}
+
+.fbu-grid--cols-2 { grid-template-columns: repeat(2, 1fr); }
+.fbu-grid--cols-3 { grid-template-columns: repeat(3, 1fr); }
+.fbu-grid--cols-4 { grid-template-columns: repeat(4, 1fr); }
+.fbu-grid--cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+/* ============================================================
+ * 반응형 — P2-2 [codex] B1 정정 (768/390 검증)
+ * ============================================================
+ * 1200px 데스크톱 baseline (rendered) → 768px 미만에서 컴포넌트 reflow
+ */
+
+/* Tablet (≤ 1024px) — 5열 → 3열, 4열 → 2열 */
+@media (max-width: 1024px) {
+  .fbu-grid--cols-5 { grid-template-columns: repeat(3, 1fr); }
+  .fbu-grid--cols-4 { grid-template-columns: repeat(2, 1fr); }
+  .fbu-header__nav  { gap: var(--fbu-space-4); }
+  .fbu-main         { padding: var(--fbu-space-6) var(--fbu-space-5); }
+}
+
+/* Mobile (≤ 768px) — 모든 grid 1열 + nav 가로 스크롤 + overflow 차단 */
+@media (max-width: 768px) {
+  /* F3 [codex] B1-P2-fix P1: 모바일 수평 overflow 보조 차단 */
+  body {
+    overflow-x: hidden;   /* 근본 box-sizing 처리 후 보조 안전장치 */
+  }
+  .fbu-table {
+    max-width: 100%;
+  }
+  .fbu-grid--cols-2,
+  .fbu-grid--cols-3,
+  .fbu-grid--cols-4,
+  .fbu-grid--cols-5 {
+    grid-template-columns: 1fr;
+  }
+  .fbu-header {
+    padding: 0 var(--fbu-space-4);
+  }
+  .fbu-header__nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: var(--fbu-space-3);
+    scrollbar-width: none;
+  }
+  .fbu-header__nav::-webkit-scrollbar {
+    display: none;
+  }
+  .fbu-header__nav a {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .fbu-main {
+    padding: var(--fbu-space-5) var(--fbu-space-4);
+  }
+  .fbu-kpi-display {
+    font-size: var(--fbu-font-size-h1);  /* 24px → 22px */
+  }
+  /* 차단 배너 모바일 */
+  .fbu-blocked-banner {
+    padding: var(--fbu-space-3);
+    flex-direction: column;
+  }
+  /* 테이블 가로 스크롤 */
+  .fbu-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+.fbu-flex {
+  display: flex;
+  gap: var(--fbu-space-4);
+}
+
+.fbu-flex--center {
+  align-items: center;
+}
+
+.fbu-flex--between {
+  justify-content: space-between;
+}
+
+/* utility */
+.fbu-text-mono {
+  font-family: var(--fbu-font-family-mono);
+}
+
+.fbu-text-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.fbu-hidden {
+  display: none !important;
+}
+
+/* ============================================================
+ * 종료 — 22 컴포넌트 + 부록
+ * ============================================================
+ *
+ * 다음 단계 (Phase 2):
+ *   1. v2 미리보기 HTML (web/v2_preview.html) — 22 컴포넌트 모두 렌더 검증
+ *   2. 운영 HTML 마이그레이션 (Phase 2-3)
+ *   3. Playwright 픽셀 비교 (standalone vs 신규)
+ *
+ * §3.3 7항 원칙 ↔ 컴포넌트 매핑:
+ *   #1 FPE 고정       → .fbu-input--readonly + .fbu-input-wrapper.is-fpe-locked
+ *   #2 APE 선택 불가  → .fbu-card--engine-ape pointer-events:none
+ *   #3 APE 비교 전용  → .fbu-kpi-diff + .fbu-card--engine-ape ::before
+ *   #4 상담 family    → .fbu-source-item
+ *   #5 엔진관리       → .fbu-status-card 5색
+ *   #6 Pretendard     → 부모 body 상속 (--fbu-font-family)
+ *   #7 SourceQuality  → .fbu-source-quality + .fbu-source-item
+ * ============================================================ */
