@@ -3833,4 +3833,316 @@ def refresh_registry_cases_from_sources(registry: dict[str, Any], path: Path) ->
     return refreshed_registry
 
 
+# ============================================================
+# D3 — EvaluationSnapshot API (Phase 1)
+# ============================================================
+# 문서번호: FBU-PLAN-V2-D5-D4-MASTER-20260501 §3
+# 출처: [claude]flowbiz_ui_v2_standalone_design_implementation_plan_v7
+# 누적 codex Findings 반영:
+#   v3 F1 P1: Pydantic BaseModel + Content-Type
+#   v3 F2 P1: ExhibitionLeadSnapshot (FPE 미실행)
+#   v4 F1 P1: uuid.uuid4().hex (ulid 의존성 제거)
+#   v4 F2 P1: UnsafeRawSnapshotForTest (Pydantic 우회 raw fixture)
+#   v5 F4 P2: test 디렉토리 격리 (data/test_evaluation_reports)
+# ============================================================
+import uuid
+from typing import Literal, Optional
+from pydantic import BaseModel, Field, ConfigDict
+
+
+def _new_id() -> str:
+    """v4 표준 — Python 표준 라이브러리 uuid (외부 의존성 0)"""
+    return uuid.uuid4().hex
+
+
+def get_snapshot_dir() -> Path:
+    """환경별 snapshot 저장 디렉토리 (v5 §11.5 정정)
+
+    - production: data/evaluation_reports/
+    - test:       data/test_evaluation_reports/ (또는 FLOWBIZ_TEST_SNAPSHOT_DIR)
+    """
+    if os.getenv("FLOWBIZ_ENV") == "test":
+        custom = os.getenv("FLOWBIZ_TEST_SNAPSHOT_DIR")
+        if custom:
+            return Path(custom)
+        return Path("data/test_evaluation_reports")
+    return Path("data/evaluation_reports")
+
+
+# ====================================================
+# Pydantic 모델 (v3 §7.1, v4 §7)
+# ====================================================
+class EvaluationSnapshot(BaseModel):
+    """FPE가 실제 실행된 평가 결과 — v3 F2 P2 분리"""
+    model_config = ConfigDict(extra="allow")
+
+    report_id: str = Field(default_factory=_new_id)
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    company_name: str = ""
+    state_key: str = ""
+    server_input_hash: str = ""
+
+    decision_source: Literal["FPE"] = "FPE"
+    evaluation_status: Literal["evaluated"] = "evaluated"
+    fpe_version: str = ""
+    ape_version: str = ""
+
+    # FPE 결과 (제안서/이메일 기준)
+    fpe_flow_score: int = 0
+    fpe_credit_limit: int = 0
+    fpe_margin_rate: float = 0.0
+    fpe_payment_grace_days: int = 0
+    fpe_knockout_reasons: list[str] = []
+    proposal_allowed: bool = False
+    blocked_reason: Optional[str] = None
+
+    # APE 비교 (참고)
+    ape_flow_score: int = 0
+    ape_credit_limit: int = 0
+    ape_margin_rate: float = 0.0
+    ape_diff_summary: dict = {}
+
+    consensus: Literal["both_go", "fpe_blocked", "ape_only_positive", "ape_blocked", "both_review"] = "both_review"
+    source_quality: dict = {}
+
+
+class ExhibitionLeadSnapshot(BaseModel):
+    """전시회 사전평가 — FPE 미실행 (v3 F2 P1)"""
+    lead_id: str = Field(default_factory=_new_id)
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    company_name: str
+    exhibition_name: str
+    exhibition_year: int
+    industry: str
+    homepage: Optional[str] = None
+    contact_name: Optional[str] = None
+
+    decision_source: Optional[str] = None  # FPE 미실행 — null
+    evaluation_status: Literal["not_evaluated"] = "not_evaluated"
+    proposal_allowed: bool = False
+    blocked_reason: str = "기업리포트/FlowScore 미연결"
+    required_actions: list[str] = [
+        "기업리포트 업로드",
+        "FlowScore 자동 조회 시도",
+        "관리자에게 추가 심사 요청",
+    ]
+
+
+class ProposalSnapshot(BaseModel):
+    proposal_id: str = Field(default_factory=_new_id)
+    report_id: str
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    company_name: str
+    credit_limit: int
+    margin_rate: float
+    payment_grace_days: int
+    template_variant: str = "standard"
+
+
+class EvaluationReportRequest(BaseModel):
+    state: dict
+    force_recreate: bool = False
+    notes: Optional[str] = None
+
+
+class ProposalGenerateRequest(BaseModel):
+    report_id: str
+    template_variant: Literal["standard", "exhibition"] = "standard"
+    notes: Optional[str] = None
+
+
+class UnsafeRawSnapshotForTest(BaseModel):
+    """⚠ TEST ONLY — Pydantic 검증 우회 raw fixture (v4 F2 P1)
+
+    잘못된 decision_source, 누락 필드 등 시뮬레이션용.
+    production 환경에서는 라우트 등록 안 됨 (FLOWBIZ_ENV=test 가드).
+    """
+    model_config = ConfigDict(extra="allow")
+    report_id: str
+    decision_source: Optional[str] = None  # Literal 강제 없음 — test 의도
+    evaluation_status: Optional[str] = None
+    proposal_allowed: Optional[bool] = None
+
+
+# ====================================================
+# Snapshot 저장/로드 헬퍼
+# ====================================================
+def save_evaluation_snapshot(snapshot_data: dict) -> Path:
+    """raw dict 저장 (production 또는 test)"""
+    snapshot_dir = get_snapshot_dir()
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    path = snapshot_dir / f"{snapshot_data['report_id']}.json"
+    path.write_text(json.dumps(snapshot_data, default=str, ensure_ascii=False))
+    return path
+
+
+def load_evaluation_snapshot_raw(report_id: str) -> dict:
+    """raw load (정책 검증 전)"""
+    snapshot_dir = get_snapshot_dir()
+    path = snapshot_dir / f"{report_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"snapshot not found: {report_id}")
+    return json.loads(path.read_text())
+
+
+def load_evaluation_snapshot_validated(report_id: str) -> EvaluationSnapshot:
+    """raw load + 정책 검증 (v4 §11.2)"""
+    raw = load_evaluation_snapshot_raw(report_id)
+
+    # decision_source 강제 (§3.3 #1)
+    if raw.get("decision_source") != "FPE":
+        raise HTTPException(
+            status_code=400,
+            detail=f"decision_source must be FPE (got: {raw.get('decision_source')})",
+        )
+
+    # FPE 필수 필드 검증
+    required = ["fpe_credit_limit", "fpe_margin_rate", "fpe_payment_grace_days"]
+    missing = [f for f in required if raw.get(f) is None]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"missing required fields: {missing}",
+        )
+
+    return EvaluationSnapshot(**raw)
+
+
+# ====================================================
+# API 엔드포인트
+# ====================================================
+@app.post("/api/evaluation/report", response_model=EvaluationSnapshot)
+async def create_evaluation_report(req: EvaluationReportRequest):
+    """평가보고서 생성 + EvaluationSnapshot 저장 (Phase 1)
+
+    1차 PR 머지 후 dual eval 호출로 전환 예정.
+    현재는 단일 FPE 평가 + APE는 동일 결과 임시 사용.
+    """
+    framework = load_active_framework()
+    framework_meta = get_active_framework_meta()
+    engine_input = build_learning_evaluation_payload(req.state)
+    result = evaluate_flowpay_underwriting(engine_input, framework)
+
+    company_name = (
+        req.state.get("company_name")
+        or req.state.get("companyName")
+        or engine_input.get("company_name", "")
+    )
+
+    server_input_hash = hashlib.sha256(
+        json.dumps(engine_input, sort_keys=True, default=str).encode()
+    ).hexdigest()[:16]
+
+    fpe_score = int(result.get("flow_score") or 0)
+    fpe_credit_limit = int(result.get("credit_limit") or 0)
+    fpe_margin_rate = float(result.get("margin_rate") or 0.0)
+    fpe_grace = int(result.get("payment_grace_days") or 0)
+    knockout_reasons = result.get("knockout_reasons") or []
+    proposal_allowed = not knockout_reasons
+
+    consensus: Literal["both_go", "fpe_blocked", "ape_only_positive", "ape_blocked", "both_review"]
+    if proposal_allowed:
+        consensus = "both_go"
+    else:
+        consensus = "fpe_blocked"
+
+    snapshot = EvaluationSnapshot(
+        company_name=str(company_name),
+        state_key=str(req.state.get("learningCaseId") or req.state.get("state_key") or ""),
+        server_input_hash=server_input_hash,
+        decision_source="FPE",
+        evaluation_status="evaluated",
+        fpe_version=framework_meta.get("version", "FPE_v.16.01") if isinstance(framework_meta, dict) else "FPE_v.16.01",
+        ape_version="APE_v1.01",
+        fpe_flow_score=fpe_score,
+        fpe_credit_limit=fpe_credit_limit,
+        fpe_margin_rate=fpe_margin_rate,
+        fpe_payment_grace_days=fpe_grace,
+        fpe_knockout_reasons=list(knockout_reasons),
+        proposal_allowed=proposal_allowed,
+        blocked_reason=knockout_reasons[0] if knockout_reasons else None,
+        ape_flow_score=fpe_score,  # 1차 PR 머지 전 — FPE와 동일
+        ape_credit_limit=fpe_credit_limit,
+        ape_margin_rate=fpe_margin_rate,
+        ape_diff_summary={"note": "1차 PR dual eval 머지 전 임시"},
+        consensus=consensus,
+        source_quality={},
+    )
+
+    save_evaluation_snapshot(snapshot.model_dump())
+    return snapshot
+
+
+@app.get("/api/evaluation/report/{report_id}", response_model=EvaluationSnapshot)
+async def get_evaluation_report(report_id: str):
+    """저장된 snapshot 조회 (정책 검증 포함)"""
+    return load_evaluation_snapshot_validated(report_id)
+
+
+@app.get("/api/evaluation/reports")
+async def list_evaluation_reports(limit: int = 20):
+    """snapshot 목록 (최근 N건)"""
+    snapshot_dir = get_snapshot_dir()
+    if not snapshot_dir.exists():
+        return {"reports": [], "total": 0}
+
+    files = sorted(
+        snapshot_dir.glob("*.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )[:limit]
+
+    reports = []
+    for f in files:
+        try:
+            raw = json.loads(f.read_text())
+            reports.append(raw)
+        except Exception:
+            continue
+
+    return {"reports": reports, "total": len(reports)}
+
+
+@app.post("/api/proposal/generate", response_model=ProposalSnapshot)
+async def generate_proposal(req: ProposalGenerateRequest):
+    """snapshot 기반 제안서 — FPE 강제 (§3.3 #1-#2)"""
+    snapshot = load_evaluation_snapshot_validated(req.report_id)
+
+    if not snapshot.proposal_allowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"FPE blocked: {snapshot.blocked_reason}",
+        )
+
+    return ProposalSnapshot(
+        report_id=req.report_id,
+        company_name=snapshot.company_name,
+        credit_limit=snapshot.fpe_credit_limit,  # ← FPE만
+        margin_rate=snapshot.fpe_margin_rate,
+        payment_grace_days=snapshot.fpe_payment_grace_days,
+        template_variant=req.template_variant,
+    )
+
+
+# ====================================================
+# Test-only API (FLOWBIZ_ENV=test 가드)
+# ====================================================
+if os.getenv("FLOWBIZ_ENV") == "test":
+
+    @app.post("/api/test/seed-raw-snapshot")
+    async def seed_raw_snapshot(snapshot: UnsafeRawSnapshotForTest):
+        """⚠ TEST ONLY — Pydantic 우회 raw 저장 (v4 F2 P1)"""
+        raw_dict = snapshot.model_dump(exclude_unset=False)
+        path = save_evaluation_snapshot(raw_dict)
+        return {"report_id": snapshot.report_id, "saved_to": str(path)}
+
+    @app.delete("/api/test/raw-snapshot/{report_id}")
+    async def delete_raw_snapshot(report_id: str):
+        snapshot_dir = get_snapshot_dir()
+        path = snapshot_dir / f"{report_id}.json"
+        if path.exists():
+            path.unlink()
+        return {"deleted": report_id}
+
+
 app.mount("/web", StaticFiles(directory=WEB_DIR, html=True), name="web")
