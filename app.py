@@ -25,7 +25,9 @@ from engine import (
     get_active_framework_meta,
     build_web_context,
     compute_margin_result,
+    evaluate_fpe_v1601,
     evaluate_flowpay_underwriting,
+    load_fpe_v1601_policy,
     load_json,
     score_band_multiplier,
 )
@@ -1105,11 +1107,15 @@ def apply_consulting_enrichment(
 def apply_internal_review_enrichment(state_patch: dict[str, Any], internal_review: dict[str, Any]) -> dict[str, Any]:
     next_patch = dict(state_patch)
     summary = internal_review.get("summary")
+    body_text = normalize_space(internal_review.get("body_text") or internal_review.get("body") or "")
+    body_excerpt = body_text[:900].strip()
     cross_checks = internal_review.get("cross_checks") or []
     issues = internal_review.get("issues") or []
 
     if summary:
         next_patch["internalReviewSummary"] = summary
+    elif body_excerpt:
+        next_patch["internalReviewSummary"] = body_excerpt
     if cross_checks:
         next_patch["internalReviewCrossChecks"] = cross_checks
     if issues:
@@ -1118,6 +1124,8 @@ def apply_internal_review_enrichment(state_patch: dict[str, Any], internal_revie
     summary_bits = []
     if summary:
         summary_bits.append(summary)
+    elif body_excerpt:
+        summary_bits.append(body_excerpt)
     if cross_checks:
         summary_bits.append(" ".join(cross_checks[:2]))
     if issues:
@@ -2323,6 +2331,7 @@ def serialize_learning_case(case: dict[str, Any]) -> dict[str, Any]:
         "total_weight": (case.get("learning") or {}).get("update_weight") or 0,
         "has_flow_score_report": float(components.get("flow_score_report", 0) or 0) > 0,
         "has_consultation_report": float(components.get("consultation_report", 0) or 0) > 0,
+        "has_meeting_report": float(components.get("meeting_report", 0) or 0) > 0,
         "has_internal_review": float(components.get("internal_review", 0) or 0) > 0,
         "detail_url": f"/web/bizaipro_evaluation_result.html?case_id={case.get('id')}",
         "source_links": source_links,
@@ -2335,6 +2344,68 @@ def sort_learning_cases(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
         key=lambda case: case.get("updated_at") or case.get("created_at") or "",
         reverse=True,
     )
+
+
+def _case_source_presence(case: dict[str, Any]) -> dict[str, bool]:
+    sources = case.get("sources") or {}
+    state = case.get("state_snapshot") or {}
+    return {
+        "company_reports": bool(
+            normalize_space(sources.get("flow_score_file_name"))
+            or normalize_space(sources.get("learningFlowScoreFileName"))
+            or normalize_space(sources.get("flowScoreFileName"))
+            or normalize_space(state.get("learningFlowScoreFileName"))
+            or normalize_space(state.get("flowScoreFileName"))
+        ),
+        "consultation_reports": bool(
+            normalize_space(sources.get("consulting_report_url"))
+            or normalize_space(sources.get("consultingReportUrl"))
+            or normalize_space(sources.get("consultation_report_url"))
+            or normalize_space(sources.get("consulting_file_name"))
+            or normalize_space(state.get("consultingReportUrl"))
+            or normalize_space(state.get("learningConsultingFileName"))
+        ),
+        "meeting_reports": bool(
+            normalize_space(sources.get("meeting_report_url"))
+            or normalize_space(sources.get("meetingReportUrl"))
+            or normalize_space(state.get("meetingReportUrl"))
+        ),
+        "internal_reviews": bool(
+            normalize_space(sources.get("internal_review_url"))
+            or normalize_space(sources.get("internalReviewUrl"))
+            or normalize_space(state.get("internalReviewUrl"))
+        ),
+    }
+
+
+def _case_component_presence(case: dict[str, Any]) -> dict[str, bool]:
+    components = (case.get("learning") or {}).get("components", {}) or {}
+    return {
+        "company_reports": float(components.get("flow_score_report", 0) or 0) > 0,
+        "consultation_reports": float(components.get("consultation_report", 0) or 0) > 0,
+        "meeting_reports": float(components.get("meeting_report", 0) or 0) > 0,
+        "internal_reviews": float(components.get("internal_review", 0) or 0) > 0,
+    }
+
+
+def dashboard_learning_card_counts(cases: list[dict[str, Any]]) -> dict[str, Any]:
+    normalized_cases = [normalize_learning_case(case) for case in cases]
+    keys = ("company_reports", "consultation_reports", "meeting_reports", "internal_reviews")
+    connected = {key: 0 for key in keys}
+    learned = {key: 0 for key in keys}
+    for case in normalized_cases:
+        source_presence = _case_source_presence(case)
+        component_presence = _case_component_presence(case)
+        for key in keys:
+            if source_presence[key]:
+                connected[key] += 1
+            if source_presence[key] and component_presence[key]:
+                learned[key] += 1
+    return {
+        **learned,
+        "connected": connected,
+        "learned": learned,
+    }
 
 
 def build_learning_case_state(case: dict[str, Any]) -> dict[str, Any]:
@@ -3267,6 +3338,20 @@ def engine_presets() -> dict[str, Any]:
     }
 
 
+@app.get("/api/engine/list")
+def engine_list() -> dict[str, Any]:
+    """v2.11 Step 8: 등록된 모든 엔진의 META 반환.
+
+    공식 engine_id: FPE / APE (대문자 단어).
+    듀얼 엔진 워크플로우의 엔진 식별 진입점.
+    """
+    try:
+        from engines import list_engines
+        return {"engines": list_engines()}
+    except Exception as exc:
+        return {"engines": [], "error": str(exc)}
+
+
 @app.get("/api/dashboard")
 def dashboard_summary() -> dict[str, Any]:
     registry = load_dashboard_registry()
@@ -3274,21 +3359,7 @@ def dashboard_summary() -> dict[str, Any]:
     updates = registry.get("updates", [])
     latest_update = updates[-1] if updates else {}
 
-    learned_company_reports = sum(
-        1
-        for case in cases
-        if float((case.get("learning", {}).get("components", {}) or {}).get("flow_score_report", 0) or 0) > 0
-    )
-    learned_consultations = sum(
-        1
-        for case in cases
-        if float((case.get("learning", {}).get("components", {}) or {}).get("consultation_report", 0) or 0) > 0
-    )
-    learned_internal_reviews = sum(
-        1
-        for case in cases
-        if float((case.get("learning", {}).get("components", {}) or {}).get("internal_review", 0) or 0) > 0
-    )
+    learning_cards = dashboard_learning_card_counts(cases)
 
     current_version = registry.get("current_version", "v.1.0.00")
     latest_update_progress = latest_update.get("progress", {}) if isinstance(latest_update, dict) else {}
@@ -3311,11 +3382,7 @@ def dashboard_summary() -> dict[str, Any]:
     return {
         "engine_name": registry.get("engine_name", "BizAiPro"),
         "current_version": normalize_engine_version(current_version),
-        "learning_cards": {
-            "company_reports": learned_company_reports,
-            "consultation_reports": learned_consultations,
-            "internal_reviews": learned_internal_reviews,
-        },
+        "learning_cards": learning_cards,
         "engine_traits": infer_engine_traits(current_version),
         "latest_update": {
             "version": latest_update.get("version", current_version),
@@ -3662,11 +3729,15 @@ async def extract_exhibition_fields(
 @app.post("/api/evaluate")
 async def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
     framework = load_active_framework()
-    analysis_type = payload.get("analysis_type")
-    if analysis_type != "flowpay_underwriting":
-        raise HTTPException(status_code=400, detail="현재는 flowpay_underwriting만 지원합니다.")
-
-    result = evaluate_flowpay_underwriting(payload, framework)
+    analysis_type = normalize_space(payload.get("analysis_type") or payload.get("engine_name"))
+    if analysis_type in {"FPE_v.16.01", "FPE_v16.01", "fpe_v1601", "fpe_v.16.01"}:
+        payload = dict(payload)
+        payload["analysis_type"] = "fpe_v1601"
+        result = evaluate_fpe_v1601(payload, framework, load_fpe_v1601_policy())
+    elif analysis_type == "flowpay_underwriting":
+        result = evaluate_flowpay_underwriting(payload, framework)
+    else:
+        raise HTTPException(status_code=400, detail="현재는 flowpay_underwriting 또는 fpe_v1601만 지원합니다.")
     context = build_web_context(payload, result)
     return {
         "result": result,
@@ -3676,12 +3747,187 @@ async def evaluate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# === v2.11 Step 9~10: 듀얼 평가 + agreement ============================
+import os as _os
+import hashlib as _hashlib
+
+def _verify_admin_token(token: str | None) -> bool:
+    """v2.11 §2.5 Step 9: 관리자 토큰 검증. ADMIN_OVERRIDE_TOKEN env 부재 시 항상 거부."""
+    if not token:
+        return False
+    expected = _os.environ.get("ADMIN_OVERRIDE_TOKEN")
+    if not expected:
+        return False
+    import hmac
+    return hmac.compare_digest(str(token), str(expected))
+
+
+def _audit_log_admin_override(payload: dict, fpe_result: dict, ape_result: dict | None) -> None:
+    """v2.11 §2.5: 관리자 우회 audit log."""
+    from datetime import datetime
+    audit_path = BASE_DIR / "data" / "engines" / "audit" / "admin_override.jsonl"
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "company_name": payload.get("company_name") or payload.get("companyName"),
+        "override_reason": payload.get("override_reason"),
+        "fpe_decision": (fpe_result or {}).get("decision"),
+        "fpe_knockout_reasons": ((fpe_result or {}).get("knockout") or {}).get("reasons", []),
+        "ape_decision": (ape_result or {}).get("decision") if ape_result else None,
+    }
+    with audit_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _canonical_engine_input_hash(engine_input: dict[str, Any]) -> str:
+    """v2.11 §2.2 F2: build_learning_evaluation_payload 결과의 결정적 hash.
+
+    클라이언트 stale gate 무효화 판단 ground truth.
+    sort_keys=True로 dict 순서 영향 제거. 첫 16자만 사용.
+    """
+    canonical = json.dumps(engine_input, sort_keys=True, ensure_ascii=False, default=str)
+    return _hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def _compute_engine_agreement(fpe_result: dict | None, ape_result: dict | None, fpe_gate_passed: bool) -> dict:
+    """v2.11 §2.2 + Step 10: 5케이스 분기 (ape_only_positive 우선)."""
+    fpe_proposal_allowed = ((fpe_result or {}).get("review") or {}).get("proposal_allowed")
+    fpe_review_path = ((fpe_result or {}).get("review") or {}).get("review_path")
+    ape_decision = (ape_result or {}).get("decision")
+
+    if not fpe_gate_passed:
+        consensus = "fpe_blocked"
+    elif fpe_review_path in ("regular_review", "management_approval") and ape_decision == "APPROVE":
+        # F4 v2.4: ape_only_positive를 both_go보다 먼저 평가
+        consensus = "ape_only_positive"
+    elif fpe_proposal_allowed and ape_decision == "APPROVE":
+        consensus = "both_go"
+    elif fpe_proposal_allowed and ape_decision == "REVIEW":
+        consensus = "both_review"
+    elif fpe_proposal_allowed and ape_decision == "REJECT":
+        consensus = "ape_blocked"
+    else:
+        consensus = "both_review"
+
+    return {
+        "consensus": consensus,
+        "fpe_proposal_allowed": fpe_proposal_allowed,
+        "fpe_review_path": fpe_review_path,
+        "ape_decision": ape_decision,
+        "fpe_gate_passed": fpe_gate_passed,
+    }
+
+
+def _summarize_input(engine_input: dict) -> dict:
+    industry_profile = engine_input.get("industry_profile") or {}
+    if isinstance(industry_profile, dict):
+        industry = industry_profile.get("industry_text") or industry_profile.get("industry_tag")
+    else:
+        industry = str(industry_profile) if industry_profile else None
+    return {
+        "company_name": engine_input.get("company_name"),
+        "industry": industry,
+        "requested_tenor_months": engine_input.get("requested_tenor_months"),
+        "analysis_type": engine_input.get("analysis_type"),
+    }
+
+
+async def _evaluate_dual_internal(engine_input: dict, original_payload: dict) -> dict:
+    """v2.11 §2.5/§2.6 핵심: FPE first gate + force_ape 기본 거부 + 매 진입 재평가 ground truth."""
+    from engines import get_engine
+    fpe_engine = get_engine("fpe")
+    ape_engine = get_engine("ape")
+
+    framework = load_active_framework()
+
+    # FPE 평가 먼저 (gate)
+    try:
+        fpe_result = fpe_engine.evaluate(engine_input, framework=framework)
+    except Exception as exc:
+        return {
+            "input_summary": _summarize_input(engine_input),
+            "server_input_hash": _canonical_engine_input_hash(engine_input),
+            "fpe_gate_passed": False,
+            "admin_override_active": False,  # FPE 실패 경로에서도 명시
+            "screening": {"engine_meta": fpe_engine.get_meta(), "result": {"error": str(exc)}},
+            "ape": {"engine_meta": ape_engine.get_meta(), "result": None, "blocked_reason": f"FPE 평가 실패: {exc}"},
+            "agreement": {"consensus": "fpe_blocked", "fpe_gate_passed": False, "error": str(exc)},
+            "framework_meta": get_active_framework_meta(),
+        }
+
+    fpe_gate_passed = bool(((fpe_result or {}).get("review") or {}).get("proposal_allowed", False))
+
+    # force_ape: 기본 거부 + 관리자 토큰 검증 시만 우회
+    force_ape = bool(original_payload.get("force_ape", False))
+    admin_override = (
+        force_ape
+        and bool(original_payload.get("override_reason"))
+        and _verify_admin_token(original_payload.get("admin_token"))
+    )
+
+    if fpe_gate_passed or admin_override:
+        try:
+            ape_result = ape_engine.evaluate(engine_input, framework=framework)
+        except Exception as exc:
+            ape_result = {"error": str(exc), "decision": "REVIEW"}
+        if admin_override and not fpe_gate_passed:
+            _audit_log_admin_override(original_payload, fpe_result, ape_result)
+    else:
+        ape_result = None
+
+    agreement = _compute_engine_agreement(fpe_result, ape_result, fpe_gate_passed)
+
+    return {
+        "input_summary": _summarize_input(engine_input),
+        "server_input_hash": _canonical_engine_input_hash(engine_input),
+        "fpe_gate_passed": fpe_gate_passed,
+        "admin_override_active": admin_override and not fpe_gate_passed,
+        "screening": {"engine_meta": fpe_engine.get_meta(), "result": fpe_result},
+        "ape": {
+            "engine_meta": ape_engine.get_meta(),
+            "result": ape_result,
+            "blocked_reason": None if (fpe_gate_passed or admin_override) else "FPE proposal_allowed=false",
+        },
+        "agreement": agreement,
+        "framework_meta": get_active_framework_meta(),
+    }
+
+
+@app.post("/api/evaluate/dual")
+async def evaluate_dual(payload: dict[str, Any]) -> dict[str, Any]:
+    """v2.11 Step 9: raw flowpay_underwriting input 듀얼 평가 (FPE + APE)."""
+    return await _evaluate_dual_internal(payload, payload)
+
+
+@app.post("/api/learning/evaluate/dual")
+async def evaluate_learning_dual(payload: dict[str, Any]) -> dict[str, Any]:
+    """v2.11 Step 9.5: state 입력 전용 듀얼 평가 — proposal/email 자동 gate가 호출."""
+    state = payload.get("state") or {}
+    if not state:
+        raise HTTPException(status_code=400, detail="state payload is required")
+    engine_input = build_learning_evaluation_payload(state)
+    return await _evaluate_dual_internal(engine_input, payload)
+# === v2.11 Step 9~10 끝 =================================================
+
+
+
 @app.post("/api/learning/evaluate")
 async def evaluate_learning_mode(payload: dict[str, Any]) -> dict[str, Any]:
     state = payload.get("state") or {}
     framework = load_active_framework()
     engine_input = build_learning_evaluation_payload(state)
-    result = evaluate_flowpay_underwriting(engine_input, framework)
+    analysis_type = normalize_space(
+        payload.get("analysis_type")
+        or payload.get("engine_name")
+        or state.get("analysisType")
+        or state.get("engineName")
+    )
+    if analysis_type in {"FPE_v.16.01", "FPE_v16.01", "fpe_v1601", "fpe_v.16.01"}:
+        engine_input["analysis_type"] = "fpe_v1601"
+        engine_input["engine_version"] = "FPE_v.16.01"
+        result = evaluate_fpe_v1601(engine_input, framework, load_fpe_v1601_policy())
+    else:
+        result = evaluate_flowpay_underwriting(engine_input, framework)
     context = normalize_learning_context_for_display(build_web_context(engine_input, result))
     state_patch = apply_learning_engine_state_patch(state, context)
     registry = record_live_learning_case(state, state_patch, engine_input, result, context)
@@ -3810,10 +4056,26 @@ def refresh_learning_case_from_sources(case: dict[str, Any], framework: dict[str
     result = evaluate_flowpay_underwriting(engine_input, framework)
     context = normalize_learning_context_for_display(build_web_context(engine_input, result))
     state_patch = apply_learning_engine_state_patch(refreshed_state, context)
+    components = learning_material_components(refreshed_state)
+    learning_status = learning_status_from_components(components)
+    refreshed_sources = {
+        **(normalized_case.get("sources") or {}),
+        **_source_quality_flags_from_state(refreshed_state),
+    }
 
     normalized_case["engine_input_snapshot"] = engine_input
     normalized_case["web_context_snapshot"] = context
     normalized_case["result_snapshot"] = result
+    normalized_case["sources"] = refreshed_sources
+    learning = dict(normalized_case.get("learning") or {})
+    learning["components"] = components
+    learning["evaluation_ready"] = learning_status["evaluation_ready"]
+    learning["update_eligible"] = learning_status["update_eligible"]
+    learning["evaluation_weight"] = learning_status["evaluation_weight"]
+    learning["update_weight"] = learning_status["update_weight"]
+    learning["qualified"] = learning_status["update_eligible"]
+    learning["total_weight"] = learning_status["update_weight"]
+    normalized_case["learning"] = learning
     normalized_case["state_snapshot"] = merge_non_empty_dict(normalized_case.get("state_snapshot") or {}, state_patch)
     normalized_case["state_snapshot"]["mode"] = "learning"
     return normalize_learning_case(normalized_case)

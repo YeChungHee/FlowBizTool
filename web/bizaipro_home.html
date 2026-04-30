@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BizAiPro 홈</title>
-    <link rel="stylesheet" href="./bizaipro_shared.css" />
+    <link rel="stylesheet" href="./bizaipro_shared.css?v=20260428-fbu-val-0014" />
   </head>
   <body class="home-page">
     <div class="page-shell">
@@ -21,15 +21,19 @@
 
             <div class="learning-stat-grid">
               <div class="learning-stat-card orange">
-                <div class="label">학습된<br />기업리포트</div>
+                <div class="label">기업리포트<br />반영/연결</div>
                 <div class="value" id="learning-company-reports">0</div>
               </div>
               <div class="learning-stat-card yellow">
-                <div class="label">학습된<br />상담보고서</div>
+                <div class="label">상담보고서<br />반영/연결</div>
                 <div class="value" id="learning-consultation-reports">0</div>
               </div>
+              <div class="learning-stat-card mint">
+                <div class="label">미팅보고서<br />반영/연결</div>
+                <div class="value" id="learning-meeting-reports">0</div>
+              </div>
               <div class="learning-stat-card blue">
-                <div class="label">학습된<br />심사보고서</div>
+                <div class="label">심사보고서<br />반영/연결</div>
                 <div class="value" id="learning-internal-reviews">0</div>
               </div>
             </div>
@@ -41,7 +45,7 @@
               </div>
               <div class="engine-insight-version">
                 <strong id="dashboard-engine-name">BizAiPro</strong>
-                <span id="dashboard-engine-version">v.1.16.01</span>
+                <span id="dashboard-engine-version">v.local.learning</span>
               </div>
               <div class="engine-insight-meta">
                 <div class="meta-row">
@@ -319,7 +323,9 @@
       </div>
     </div>
 
-    <script src="./bizaipro_shared.js"></script>
+    <script src="./dual_eval_helpers.js?v=20260430-dual-v2-11"></script>
+
+    <script src="./bizaipro_shared.js?v=20260428-fbu-val-0014"></script>
     <script>
       const shared = window.BizAiProShared;
       shared.renderTopNav("home");
@@ -380,9 +386,17 @@
 
       function renderDashboard(state) {
         const stats = dashboardSummary?.learning_cards || {};
-        document.getElementById("learning-company-reports").textContent = stats.company_reports ?? 0;
-        document.getElementById("learning-consultation-reports").textContent = stats.consultation_reports ?? 0;
-        document.getElementById("learning-internal-reviews").textContent = stats.internal_reviews ?? 0;
+        const learnedStats = stats.learned || stats;
+        const connectedStats = stats.connected || {};
+        const statText = (key) => {
+          const learned = learnedStats[key] ?? 0;
+          const connected = connectedStats[key];
+          return connected !== undefined && connected !== null ? `${learned}/${connected}` : `${learned}`;
+        };
+        document.getElementById("learning-company-reports").textContent = statText("company_reports");
+        document.getElementById("learning-consultation-reports").textContent = statText("consultation_reports");
+        document.getElementById("learning-meeting-reports").textContent = statText("meeting_reports");
+        document.getElementById("learning-internal-reviews").textContent = statText("internal_reviews");
 
         document.getElementById("dashboard-engine-name").textContent = dashboardSummary?.engine_name || "BizAiPro";
         document.getElementById("dashboard-engine-version").textContent = shared.formatEngineVersionLabel(state.engineVersion);
@@ -512,6 +526,9 @@
                 : "",
               item.has_consultation_report
                 ? `<span class="learning-material-box yellow" title="상담보고서"></span>`
+                : "",
+              item.has_meeting_report
+                ? `<span class="learning-material-box mint" title="미팅보고서"></span>`
                 : "",
               item.has_internal_review
                 ? `<span class="learning-material-box green" title="심사보고서"></span>`
